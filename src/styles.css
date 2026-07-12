@@ -1,0 +1,95 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-serif:
+    "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  --font-sans:
+    "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP",
+    ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --radius: 0.5rem;
+  /* Warm cream paper */
+  --background: oklch(0.982 0.008 85);
+  --foreground: oklch(0.22 0.02 40);
+  --card: oklch(0.995 0.006 85);
+  --card-foreground: oklch(0.22 0.02 40);
+  --popover: oklch(0.995 0.006 85);
+  --popover-foreground: oklch(0.22 0.02 40);
+  /* Deep sealing-wax red */
+  --primary: oklch(0.44 0.17 30);
+  --primary-foreground: oklch(0.985 0.005 85);
+  --secondary: oklch(0.94 0.015 70);
+  --secondary-foreground: oklch(0.3 0.03 40);
+  --muted: oklch(0.94 0.015 70);
+  --muted-foreground: oklch(0.5 0.02 50);
+  --accent: oklch(0.9 0.03 60);
+  --accent-foreground: oklch(0.3 0.03 40);
+  --destructive: oklch(0.55 0.22 27);
+  --destructive-foreground: oklch(0.985 0.005 85);
+  --border: oklch(0.88 0.015 60);
+  --input: oklch(0.88 0.015 60);
+  --ring: oklch(0.6 0.1 35);
+}
+
+.dark {
+  --background: oklch(0.22 0.02 40);
+  --foreground: oklch(0.98 0.005 85);
+  --card: oklch(0.26 0.02 40);
+  --card-foreground: oklch(0.98 0.005 85);
+  --popover: oklch(0.26 0.02 40);
+  --popover-foreground: oklch(0.98 0.005 85);
+  --primary: oklch(0.6 0.18 30);
+  --primary-foreground: oklch(0.98 0.005 85);
+  --secondary: oklch(0.3 0.02 40);
+  --secondary-foreground: oklch(0.98 0.005 85);
+  --muted: oklch(0.3 0.02 40);
+  --muted-foreground: oklch(0.7 0.02 50);
+  --accent: oklch(0.35 0.03 40);
+  --accent-foreground: oklch(0.98 0.005 85);
+  --destructive: oklch(0.6 0.2 27);
+  --destructive-foreground: oklch(0.98 0.005 85);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.55 0.1 35);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-serif);
+    font-feature-settings: "palt";
+  }
+}
