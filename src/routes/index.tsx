@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -13,13 +13,11 @@ import {
   PlusCircle,
 } from "lucide-react";
 import {
-  checkUnlocked,
   exploreTheme,
   generatePrompt,
   improvePrompt,
   continuePrompt,
 } from "@/lib/gate.functions";
-import { AUTH_TOKEN_KEY } from "@/lib/gate.constants";
 import {
   loadSaved,
   writeSaved,
@@ -27,7 +25,8 @@ import {
   promptId,
   type SavedItem,
 } from "@/lib/saved";
-import { Button } from "@/components/ui/button";
+import { useT, type Dict, type Lang } from "@/lib/i18n";
+import { AdSlot } from "@/components/AdSlot";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -37,10 +36,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "単語やテーマを入力すると、AIが関連する専門知識を探索し、学術理論・思考法・プロンプトエンジニアリングを組み合わせた高品質なプロンプトを生成します。",
+          "単語やテーマから、学術理論・思考法・プロンプトエンジニアリング技法を掛け合わせた高品質な文章生成プロンプトをつくるアトリエ。/ An atelier that turns any word or theme into high-quality writing prompts weaving academic theory, thinking frameworks, and prompt engineering.",
       },
       { property: "og:title", content: "Prompt Atelier" },
-      { property: "og:description", content: "言葉を、目的とプロンプトへ。" },
+      {
+        property: "og:description",
+        content: "Turn any word into a purpose and a high-quality writing prompt.",
+      },
       { property: "og:type", content: "website" },
     ],
   }),
@@ -62,9 +64,37 @@ type ContinuationBranch = {
   items: Array<ContinuationItem & { child?: ContinuationBranch }>;
 };
 
+function LangToggle({
+  lang,
+  setLang,
+}: {
+  lang: Lang;
+  setLang: (l: Lang) => void;
+}) {
+  return (
+    <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-[10px] font-medium tracking-wider">
+      {(["ja", "en"] as const).map((l) => (
+        <button
+          key={l}
+          type="button"
+          onClick={() => setLang(l)}
+          className={cn(
+            "rounded-full px-2.5 py-1 transition-colors",
+            lang === l
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {l.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function CopyButton({
   text,
-  label = "コピー",
+  label,
   className,
   size = "sm",
 }: {
@@ -73,7 +103,9 @@ function CopyButton({
   className?: string;
   size?: "sm" | "icon";
 }) {
+  const [t] = useT();
   const [copied, setCopied] = useState(false);
+  const displayLabel = label ?? t.copy;
 
   async function onCopy(e: React.MouseEvent) {
     e.stopPropagation();
@@ -98,7 +130,7 @@ function CopyButton({
       <button
         type="button"
         onClick={onCopy}
-        aria-label={copied ? "コピーしました" : label}
+        aria-label={copied ? t.copied : displayLabel}
         className={cn(
           "inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
           className,
@@ -118,18 +150,15 @@ function CopyButton({
       )}
     >
       {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
-      {copied ? "コピーしました" : label}
+      {copied ? t.copied : displayLabel}
     </button>
   );
 }
 
 function Home() {
-  const router = useRouter();
-  const check = useServerFn(checkUnlocked);
+  const [t, lang, setLang] = useT();
   const explore = useServerFn(exploreTheme);
   const genPrompt = useServerFn(generatePrompt);
-  const [authToken, setAuthToken] = useState<string | null>(null);
-  const [authChecking, setAuthChecking] = useState(true);
 
   const [input, setInput] = useState("");
   const [theme, setTheme] = useState<string | null>(null);
@@ -144,34 +173,6 @@ function Home() {
   const [promptError, setPromptError] = useState<string | null>(null);
 
   const [saved, setSaved] = useState<SavedItem[]>([]);
-
-  useEffect(() => {
-    let active = true;
-    const token = localStorage.getItem(AUTH_TOKEN_KEY);
-    if (!token) {
-      router.navigate({ to: "/unlock", replace: true });
-      return;
-    }
-    check({ data: { token } })
-      .then(({ unlocked }) => {
-        if (!active) return;
-        if (unlocked) {
-          setAuthToken(token);
-          setAuthChecking(false);
-        } else {
-          localStorage.removeItem(AUTH_TOKEN_KEY);
-          router.navigate({ to: "/unlock", replace: true });
-        }
-      })
-      .catch(() => {
-        if (!active) return;
-        localStorage.removeItem(AUTH_TOKEN_KEY);
-        router.navigate({ to: "/unlock", replace: true });
-      });
-    return () => {
-      active = false;
-    };
-  }, [check, router]);
 
   useEffect(() => {
     setSaved(loadSaved());
@@ -201,18 +202,12 @@ function Home() {
     setSelectedUsage(null);
     setTheme(value);
     try {
-      if (!authToken) throw new Error("ログインが必要です");
-      const res = await explore({ data: { theme: value, token: authToken } });
+      const res = await explore({ data: { theme: value, lang } });
       setTerms(res.terms);
       setUsages(res.usages);
     } catch (err) {
       console.error(err);
-      if (String(err).includes("ログインが必要です")) {
-        localStorage.removeItem(AUTH_TOKEN_KEY);
-        await router.navigate({ to: "/unlock", replace: true });
-        return;
-      }
-      setThemeError("生成に失敗しました。少し時間をおいてもう一度お試しください。");
+      setThemeError(t.themeError);
     } finally {
       setLoadingTheme(false);
     }
@@ -225,9 +220,8 @@ function Home() {
     setPromptError(null);
     setLoadingPrompt(true);
     try {
-      if (!authToken) throw new Error("ログインが必要です");
       const res = await genPrompt({
-        data: { theme, usageTitle: u.title, usageDesc: u.desc, token: authToken },
+        data: { theme, usageTitle: u.title, usageDesc: u.desc, lang },
       });
       setPrompt(res);
       setTimeout(() => {
@@ -235,12 +229,7 @@ function Home() {
       }, 50);
     } catch (err) {
       console.error(err);
-      if (String(err).includes("ログインが必要です")) {
-        localStorage.removeItem(AUTH_TOKEN_KEY);
-        await router.navigate({ to: "/unlock", replace: true });
-        return;
-      }
-      setPromptError("プロンプト生成に失敗しました。もう一度お試しください。");
+      setPromptError(t.promptError);
     } finally {
       setLoadingPrompt(false);
     }
@@ -257,56 +246,47 @@ function Home() {
     setPromptError(null);
   }
 
-  if (authChecking) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4 text-sm text-muted-foreground">
-        <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
-        ログイン状態を確認しています…
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto w-full max-w-3xl px-6 pb-24 pt-14 sm:px-8">
-        <header className="flex items-start justify-between">
+        <header className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 text-xs tracking-[0.28em] text-primary">
             <Sparkles className="h-3.5 w-3.5" />
-            PROMPT ATELIER
+            {t.brand}
           </div>
-          <Link
-            to="/saved"
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
-          >
-            <Star className="h-3.5 w-3.5" />
-            {saved.length}
-          </Link>
+          <div className="flex items-center gap-2">
+            <LangToggle lang={lang} setLang={setLang} />
+            <Link
+              to="/saved"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+            >
+              <Star className="h-3.5 w-3.5" />
+              {saved.length}
+            </Link>
+          </div>
         </header>
 
         <h1 className="mt-8 text-4xl font-semibold leading-tight tracking-tight text-foreground sm:text-5xl">
-          言葉を、
+          {t.heroL1}
           <br />
-          目的とプロンプトへ。
+          {t.heroL2}
         </h1>
-        <p className="mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground">
-          単語やテーマを入力すると、AIが関連する専門知識を探索し、多様な活用法を提案。
-          気に入ったものは★で保存でき、生成されたプロンプトは学術理論・思考法・プロンプトエンジニアリングを掛け合わせて設計されます。
-        </p>
+        <p className="mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground">{t.tagline}</p>
 
         <form onSubmit={onExplore} className="mt-12">
-          <label className="text-xs tracking-widest text-muted-foreground">入力</label>
+          <label className="text-xs tracking-widest text-muted-foreground">{t.inputLabel}</label>
           <div className="mt-2 flex items-center gap-2 rounded-xl border border-border bg-card p-2 shadow-sm focus-within:border-primary/50">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="例：星、宝石、朝の光、意思決定、記憶…"
+              placeholder={t.placeholder}
               className="flex-1 bg-transparent px-3 py-2 text-base text-foreground outline-none placeholder:text-muted-foreground/70"
               disabled={loadingTheme}
             />
             <button
               type="submit"
               disabled={loadingTheme || !input.trim()}
-              aria-label="生成"
+              aria-label="Generate"
               className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
             >
               {loadingTheme ? (
@@ -323,7 +303,7 @@ function Home() {
               className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
             >
               <RotateCcw className="h-3 w-3" />
-              最初からやり直す
+              {t.restart}
             </button>
           )}
           {themeError && <p className="mt-3 text-sm text-destructive">{themeError}</p>}
@@ -332,16 +312,16 @@ function Home() {
         {loadingTheme && (
           <div className="mt-14 flex items-center gap-3 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            知識空間を探索しています…
+            {t.exploring}
           </div>
         )}
 
         {terms && (
           <section className="mt-14">
-            <h2 className="text-xs tracking-widest text-muted-foreground">関連する専門用語・概念</h2>
+            <h2 className="text-xs tracking-widest text-muted-foreground">{t.termsHeading}</h2>
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {terms.map((t, i) => {
-                const id = termId(theme ?? "", t.name);
+              {terms.map((term, i) => {
+                const id = termId(theme ?? "", term.name);
                 const isFav = savedIds.has(id);
                 return (
                   <article
@@ -349,7 +329,7 @@ function Home() {
                     className="group relative rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/40"
                   >
                     <div className="absolute right-2 top-2 flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-                      <CopyButton text={t.name} size="icon" label={`「${t.name}」をコピー`} />
+                      <CopyButton text={term.name} size="icon" label={term.name} />
                       <button
                         type="button"
                         onClick={() =>
@@ -358,24 +338,24 @@ function Home() {
                             type: "term",
                             createdAt: Date.now(),
                             theme: theme ?? "",
-                            name: t.name,
-                            field: t.field,
-                            desc: t.desc,
+                            name: term.name,
+                            field: term.field,
+                            desc: term.desc,
                           })
                         }
-                        aria-label={isFav ? "保存を解除" : "保存する"}
+                        aria-label={isFav ? t.unsave : t.save}
                         className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                       >
                         <Star className={cn("h-3.5 w-3.5", isFav && "fill-primary text-primary")} />
                       </button>
                     </div>
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 pr-16">
-                      <h3 className="text-sm font-semibold text-foreground">{t.name}</h3>
+                      <h3 className="text-sm font-semibold text-foreground">{term.name}</h3>
                       <span className="text-[10px] tracking-wider text-muted-foreground">
-                        {t.field}
+                        {term.field}
                       </span>
                     </div>
-                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{t.desc}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{term.desc}</p>
                   </article>
                 );
               })}
@@ -385,7 +365,7 @@ function Home() {
 
         {usages && (
           <section className="mt-12">
-            <h2 className="text-xs tracking-widest text-muted-foreground">このテーマでできること</h2>
+            <h2 className="text-xs tracking-widest text-muted-foreground">{t.usagesHeading}</h2>
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
               {usages.map((u, i) => {
                 const active = selectedUsage?.title === u.title;
@@ -420,7 +400,7 @@ function Home() {
             {loadingPrompt && !prompt && (
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                学術理論・思考法・プロンプト技法を織り込んで設計しています…
+                {t.designing}
               </div>
             )}
             {promptError && <p className="text-sm text-destructive">{promptError}</p>}
@@ -429,7 +409,8 @@ function Home() {
                 data={prompt}
                 usage={selectedUsage}
                 theme={theme}
-                authToken={authToken}
+                lang={lang}
+                dict={t}
                 savedIds={savedIds}
                 onToggleSaved={toggleSaved}
                 onUpdate={setPrompt}
@@ -438,8 +419,10 @@ function Home() {
           </section>
         )}
 
-        <footer className="mt-20 border-t border-border pt-6 text-xs text-muted-foreground">
-          入力ごとに毎回新しい提案とプロンプトを生成します。保存項目はこの端末に保存されます。
+        <AdSlot />
+
+        <footer className="mt-10 border-t border-border pt-6 text-xs text-muted-foreground">
+          {t.footerNote}
         </footer>
       </div>
     </div>
@@ -450,7 +433,8 @@ function PromptView({
   data,
   usage,
   theme,
-  authToken,
+  lang,
+  dict,
   savedIds,
   onToggleSaved,
   onUpdate,
@@ -458,7 +442,8 @@ function PromptView({
   data: PromptResult;
   usage: Usage | null;
   theme: string | null;
-  authToken: string | null;
+  lang: Lang;
+  dict: Dict;
   savedIds: Set<string>;
   onToggleSaved: (item: SavedItem) => void;
   onUpdate: (next: PromptResult) => void;
@@ -474,7 +459,7 @@ function PromptView({
   const isFav = savedIds.has(id);
 
   async function onImprove() {
-    if (!theme || !usage || !authToken || refining) return;
+    if (!theme || !usage || refining) return;
     setRefining(true);
     setRefineError(null);
     try {
@@ -484,7 +469,7 @@ function PromptView({
           usageTitle: usage.title,
           usageDesc: usage.desc,
           currentPrompt: data.prompt,
-          token: authToken,
+          lang,
         },
       });
       setLastChanges(res.changes);
@@ -492,7 +477,7 @@ function PromptView({
       setRootBranch(null);
     } catch (e) {
       console.error(e);
-      setRefineError("改善に失敗しました。もう一度お試しください。");
+      setRefineError(dict.improveError);
     } finally {
       setRefining(false);
     }
@@ -502,18 +487,18 @@ function PromptView({
     <div className="space-y-8">
       {usage && (
         <div>
-          <div className="text-xs tracking-widest text-muted-foreground">選択した作業</div>
+          <div className="text-xs tracking-widest text-muted-foreground">{dict.selectedWork}</div>
           <h3 className="mt-1 text-lg font-semibold text-foreground">{usage.title}</h3>
         </div>
       )}
 
       <div>
-        <h4 className="text-xs tracking-widest text-muted-foreground">思考プロセスの設計</h4>
+        <h4 className="text-xs tracking-widest text-muted-foreground">{dict.thinkingProcess}</h4>
         <p className="mt-2 text-sm leading-relaxed text-foreground">{data.thinking_process}</p>
       </div>
 
       <div>
-        <h4 className="text-xs tracking-widest text-muted-foreground">採用した構成要素</h4>
+        <h4 className="text-xs tracking-widest text-muted-foreground">{dict.components}</h4>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
           {data.components.map((c, i) => (
             <div key={i} className="rounded-lg border border-border bg-card p-4">
@@ -527,7 +512,7 @@ function PromptView({
 
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h4 className="text-xs tracking-widest text-muted-foreground">完成プロンプト</h4>
+          <h4 className="text-xs tracking-widest text-muted-foreground">{dict.finalPrompt}</h4>
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -540,7 +525,7 @@ function PromptView({
               ) : (
                 <Wand2 className="h-3.5 w-3.5" />
               )}
-              プロンプトを改善
+              {dict.improve}
             </button>
             <button
               type="button"
@@ -561,15 +546,15 @@ function PromptView({
               className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
             >
               <Star className={cn("h-3.5 w-3.5", isFav && "fill-primary text-primary")} />
-              {isFav ? "保存済み" : "保存"}
+              {isFav ? dict.saved : dict.save}
             </button>
-            <CopyButton text={data.prompt} label="プロンプトをコピー" />
+            <CopyButton text={data.prompt} label={dict.copyPrompt} />
           </div>
         </div>
         {refineError && <p className="mt-3 text-xs text-destructive">{refineError}</p>}
         {lastChanges && (
           <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs leading-relaxed text-foreground">
-            <div className="mb-1 text-[10px] tracking-widest text-primary">改善点</div>
+            <div className="mb-1 text-[10px] tracking-widest text-primary">{dict.changes}</div>
             <pre className="whitespace-pre-wrap font-sans">{lastChanges}</pre>
           </div>
         )}
@@ -578,11 +563,12 @@ function PromptView({
         </pre>
       </div>
 
-      {theme && usage && authToken && (
+      {theme && usage && (
         <ContinuationsSection
           theme={theme}
           usage={usage}
-          authToken={authToken}
+          lang={lang}
+          dict={dict}
           basePrompt={data.prompt}
           branch={rootBranch}
           onBranchChange={setRootBranch}
@@ -597,7 +583,8 @@ function PromptView({
 function ContinuationsSection({
   theme,
   usage,
-  authToken,
+  lang,
+  dict,
   basePrompt,
   branch,
   onBranchChange,
@@ -606,7 +593,8 @@ function ContinuationsSection({
 }: {
   theme: string;
   usage: Usage;
-  authToken: string;
+  lang: Lang;
+  dict: Dict;
   basePrompt: string;
   branch: ContinuationBranch | null;
   onBranchChange: (b: ContinuationBranch | null) => void;
@@ -628,7 +616,7 @@ function ContinuationsSection({
           usageTitle: usage.title,
           usageDesc: usage.desc,
           currentPrompt: basePrompt,
-          token: authToken,
+          lang,
         },
       });
       onBranchChange({
@@ -636,10 +624,9 @@ function ContinuationsSection({
         basePrompt,
         items: res.items.slice(0, 3).map((it) => ({ ...it })),
       });
-
     } catch (e) {
       console.error(e);
-      setError("続きの生成に失敗しました。もう一度お試しください。");
+      setError(dict.contError);
     } finally {
       setLoading(false);
     }
@@ -648,7 +635,9 @@ function ContinuationsSection({
   return (
     <div className="border-t border-border pt-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h4 className="text-xs tracking-widest text-muted-foreground">プロンプトの続き（3案）</h4>
+        <h4 className="text-xs tracking-widest text-muted-foreground">
+          {dict.continuationsHeading}
+        </h4>
         <button
           type="button"
           onClick={generate}
@@ -660,7 +649,7 @@ function ContinuationsSection({
           ) : (
             <PlusCircle className="h-3.5 w-3.5" />
           )}
-          {branch ? "3案を再生成" : "続きを3案生成"}
+          {branch ? dict.regen3 : dict.gen3}
         </button>
       </div>
       {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
@@ -668,7 +657,8 @@ function ContinuationsSection({
         <BranchView
           theme={theme}
           usage={usage}
-          authToken={authToken}
+          lang={lang}
+          dict={dict}
           branch={branch}
           onChange={(b) => onBranchChange(b)}
           savedIds={savedIds}
@@ -682,7 +672,8 @@ function ContinuationsSection({
 function BranchView({
   theme,
   usage,
-  authToken,
+  lang,
+  dict,
   branch,
   onChange,
   savedIds,
@@ -690,7 +681,8 @@ function BranchView({
 }: {
   theme: string;
   usage: Usage;
-  authToken: string;
+  lang: Lang;
+  dict: Dict;
   branch: ContinuationBranch;
   onChange: (b: ContinuationBranch) => void;
   savedIds: Set<string>;
@@ -704,7 +696,8 @@ function BranchView({
           index={i}
           theme={theme}
           usage={usage}
-          authToken={authToken}
+          lang={lang}
+          dict={dict}
           basePrompt={branch.basePrompt}
           item={item}
           onChildChange={(child) => {
@@ -725,7 +718,8 @@ function ContinuationCard({
   index,
   theme,
   usage,
-  authToken,
+  lang,
+  dict,
   basePrompt,
   item,
   onChildChange,
@@ -735,7 +729,8 @@ function ContinuationCard({
   index: number;
   theme: string;
   usage: Usage;
-  authToken: string;
+  lang: Lang;
+  dict: Dict;
   basePrompt: string;
   item: ContinuationItem & { child?: ContinuationBranch };
   onChildChange: (b: ContinuationBranch | null) => void;
@@ -743,13 +738,13 @@ function ContinuationCard({
   onToggleSaved: (item: SavedItem) => void;
 }) {
   const fullPromptText = `${basePrompt}\n\n${item.continuation}`;
-  const savedId = promptId(theme, `${usage.title} / 続き案${index + 1}`, fullPromptText);
+  const savedId = promptId(theme, `${usage.title} / #${index + 1}`, fullPromptText);
   const isFav = savedIds.has(savedId);
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="text-[10px] tracking-widest text-primary">案 {index + 1}</div>
+          <div className="text-[10px] tracking-widest text-primary">{dict.caseN(index + 1)}</div>
           <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
@@ -759,20 +754,20 @@ function ContinuationCard({
                   type: "prompt",
                   createdAt: Date.now(),
                   theme,
-                  usageTitle: `${usage.title} / 続き案${index + 1}`,
+                  usageTitle: `${usage.title} / ${dict.caseN(index + 1)}`,
                   usageDesc: usage.desc,
                   promptText: fullPromptText,
                   components: item.components.map((c) => ({ ...c, reason: "" })),
                 })
               }
               className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-accent"
-              aria-label={isFav ? "保存を解除" : "この案を保存"}
+              aria-label={isFav ? dict.unsave : dict.saveThis}
             >
               <Star className={cn("h-3 w-3", isFav && "fill-primary text-primary")} />
-              {isFav ? "保存済み" : "保存"}
+              {isFav ? dict.saved : dict.save}
             </button>
-            <CopyButton text={item.continuation} label="続きのみコピー" />
-            <CopyButton text={fullPromptText} label="全文コピー" />
+            <CopyButton text={item.continuation} label={dict.copyContOnly} />
+            <CopyButton text={fullPromptText} label={dict.copyFull} />
           </div>
         </div>
         <div className="mt-3 space-y-1.5">
@@ -791,7 +786,8 @@ function ContinuationCard({
         <ContinueOnCard
           theme={theme}
           usage={usage}
-          authToken={authToken}
+          lang={lang}
+          dict={dict}
           basePrompt={fullPromptText}
           hasChild={!!item.child}
           onGenerated={(child) => onChildChange(child)}
@@ -799,11 +795,14 @@ function ContinuationCard({
       </div>
       {item.child && (
         <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3">
-          <div className="mb-2 text-[10px] tracking-widest text-primary">案 {index + 1} の続き（3案）</div>
+          <div className="mb-2 text-[10px] tracking-widest text-primary">
+            {dict.childHeading(index + 1)}
+          </div>
           <BranchView
             theme={theme}
             usage={usage}
-            authToken={authToken}
+            lang={lang}
+            dict={dict}
             branch={item.child}
             onChange={(b) => onChildChange(b)}
             savedIds={savedIds}
@@ -818,14 +817,16 @@ function ContinuationCard({
 function ContinueOnCard({
   theme,
   usage,
-  authToken,
+  lang,
+  dict,
   basePrompt,
   hasChild,
   onGenerated,
 }: {
   theme: string;
   usage: Usage;
-  authToken: string;
+  lang: Lang;
+  dict: Dict;
   basePrompt: string;
   hasChild: boolean;
   onGenerated: (b: ContinuationBranch) => void;
@@ -845,7 +846,7 @@ function ContinueOnCard({
           usageTitle: usage.title,
           usageDesc: usage.desc,
           currentPrompt: basePrompt,
-          token: authToken,
+          lang,
         },
       });
       onGenerated({
@@ -855,7 +856,7 @@ function ContinueOnCard({
       });
     } catch (e) {
       console.error(e);
-      setError("続きの生成に失敗しました。");
+      setError(dict.contShortError);
     } finally {
       setLoading(false);
     }
@@ -874,12 +875,9 @@ function ContinueOnCard({
         ) : (
           <PlusCircle className="h-3.5 w-3.5" />
         )}
-        {hasChild ? "この案の続きを再生成" : "この案の続きを3案生成"}
+        {hasChild ? dict.regenChild : dict.genChild}
       </button>
       {error && <p className="mt-2 text-[11px] text-destructive">{error}</p>}
     </div>
   );
 }
-
-// Silence unused-import lint if Button not used directly.
-void Button;
