@@ -3,8 +3,7 @@ import { useEffect, useState } from "react";
 export type Lang = "ja" | "en";
 const STORAGE_KEY = "prompt-atelier-lang";
 
-const dict = {
-  ja: {
+const jaRaw = {
     brand: "PROMPT ATELIER",
     heroL1: "言葉を、",
     heroL2: "目的とプロンプトへ。",
