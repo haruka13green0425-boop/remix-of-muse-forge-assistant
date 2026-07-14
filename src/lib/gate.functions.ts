@@ -126,7 +126,9 @@ export const generatePrompt = createServerFn({ method: "POST" })
   (A) 学術理論 — **実在し学術書・論文・専門辞典で確認できる具体的理論名のみ**。心理学・哲学の定番だけに偏らせず、テーマから連想が伸びる範囲で自然科学・工学・経済学・社会学・言語学・人類学・情報科学・生物学・美学・スポーツ科学・栄養学・歴史学など幅広い分野から選ぶ。参考例（これに限らない）: 認知的不協和理論、自己決定理論、社会的学習理論、期待効用理論、プロスペクト理論、限定合理性、ナッジ理論、状況的学習論、活動理論、フロー理論、自己効力感、アタッチメント理論、生成文法、関連性理論、発話行為論、フレーム意味論、記号論、構造主義、現象学、批判理論、アクターネットワーク理論、複雑系理論、情報理論、制御理論、ゲーム理論、進化的安定戦略、系統発生学、恒常性、アロスタシス、熱力学第二法則、エントロピー、確率過程論、ベイズ推論、統計的学習理論、圏論、グラフ理論 など。名称単体で検索・確認できる確信がない候補は別の確実な理論に置き換える。造語・不自然な翻訳・曖昧な名称は禁止。
   (B) 思考法 — 実在するもののみ。参考例（これに限らない）: アナロジー思考、システム思考、TRIZ、ラテラルシンキング、批判的思考、逆算思考、MECE、演繹・帰納・アブダクション、デザイン思考、仮説思考、シナリオプランニング、5Why、KJ法、ロジックツリー、ピラミッドストラクチャ、ゼロベース思考、両利きの思考、弁証法、思考実験、フェルミ推定、逆問題思考、ステークホルダー分析 など。毎回同じ2〜3個に偏らせない。造語禁止。
   (C) プロンプトエンジニアリング技法 — **論文・公式ドキュメントで名称が確認できる技法のみ**。**特定の技法（特にChain-of-Thought, Few-shot, ReAct 等の定番）に偏らせず、題材ごとに毎回違う技法を選び直す**こと。参考例（これに限らず、実在する技法なら自由に選出可）: Chain-of-Thought, Few-shot, Zero-shot-CoT, Self-Consistency, ReAct, Tree-of-Thoughts, Graph-of-Thoughts, Step-Back Prompting, Least-to-Most, Plan-and-Solve, Decomposed Prompting, Multi-Persona / Persona Switch, Self-Refine, Reflexion, Skeleton-of-Thought, Chain-of-Verification (CoVe), Chain-of-Density, Chain-of-Note, Program-of-Thought, Program-Aided Language (PAL), Analogical Prompting, Emotion Prompt, Rephrase-and-Respond, Contrastive CoT, Self-Ask, Maieutic Prompting, Generated Knowledge Prompting, Directional Stimulus Prompting, Active-Prompt, Automatic Prompt Engineer (APE), Automatic CoT (Auto-CoT), Buffer of Thoughts, Meta Prompting, Thread of Thought, Chain-of-Symbol, System 2 Attention (S2A), Progressive-Hint Prompting, ExpertPrompting, Role Prompting, Take a Deep Breath, Recitation-Augmented, Ask-Me-Anything Prompting, DecomP, Faithful CoT, Selection-Inference, Iterative Refinement, Constitutional AI style critique, Debate Prompting, Chain-of-Density, MedPrompt など。造語、確認困難な略称、論文名だけを技法名のように扱うことは禁止。
-- 完成プロンプトは各要素を明示的に手順に組み込み、出力形式を指定すること。
+- **重要（骨格の実埋め込み）**: "components" に挙げた各要素の **名称そのものを "prompt" 本文中に必ず明示的に登場させ**、その要素がどう手順に効くかを1〜2文で織り込むこと（例: 「まずプロスペクト理論の枠組みで損失回避の観点から選択肢を評価し…」「次に Step-Back Prompting の要領で一段抽象化した問いを立て…」）。単に理論名を羅列するのではなく、**その要素の考え方・手順・チェック観点をプロンプトの指示ステップの中に具体的に組み込む**こと。名前だけ出して機能していない状態は禁止。
+- 完成プロンプトは、前提設定→思考手順（各要素を組み込み）→出力形式指定→自己チェック観点、の流れを自然な段落で明示する。出力形式は文字数・構成・トーンなどを具体的に指定する。
+- **最終自己チェック**: "prompt" 本文を書き終えた後、"components" に挙げた要素名がすべて本文中に登場し、かつそれぞれが単なる言及ではなく手順として機能しているかを内部で確認し、満たしていなければ書き直してから出力すること。
 
 
 出力は純粋なJSONのみ:
@@ -137,7 +139,7 @@ export const generatePrompt = createServerFn({ method: "POST" })
     { "name": "具体名", "category": "思考法", "reason": "採用理由（60〜100字）" },
     { "name": "具体名", "category": "プロンプトエンジニアリング", "reason": "採用理由（60〜100字）" }
   ],
-  "prompt": "完成した文章生成用プロンプト本文。Markdown記法は一切使わずプレーンテキストのみ。段落は通常の改行で区切る。日本語。600〜1200字程度。"
+  "prompt": "完成した文章生成用プロンプト本文。Markdown記法は一切使わずプレーンテキストのみ。段落は通常の改行で区切る。日本語。600〜1200字程度。componentsに挙げた要素名を必ず本文中に明示的に登場させ、手順として機能させること。"
 }`;
     const raw = await callAI(prompt, system);
     const parsed = extractJson<{
