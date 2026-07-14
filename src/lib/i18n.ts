@@ -122,10 +122,76 @@ const jaRaw = {
     metaTitle: "Prompt Atelier — Turn a word into a purpose & prompt.",
     metaDesc:
       "An atelier that turns any word or theme into high-quality writing prompts, weaving academic theory, thinking frameworks, and prompt engineering.",
-  },
 } as const;
 
-export type Dict = typeof dict.ja;
+export type Dict = {
+  [K in keyof typeof jaRaw]: typeof jaRaw[K] extends (n: number) => string
+    ? (n: number) => string
+    : string;
+};
+
+const enRaw: Dict = {
+  brand: "PROMPT ATELIER",
+  heroL1: "Turn a word",
+  heroL2: "into a purpose & prompt.",
+  tagline:
+    "Enter a word or theme. The AI explores related concepts and suggests diverse uses. Save with ★; generated prompts weave together academic theories, thinking frameworks, and prompt-engineering techniques.",
+  inputLabel: "Input",
+  placeholder: "e.g. stars, gemstones, morning light, decision-making, memory…",
+  restart: "Start over",
+  themeError: "Generation failed. Please try again in a moment.",
+  exploring: "Exploring the knowledge space…",
+  termsHeading: "Related terms & concepts",
+  usagesHeading: "What you can do with this theme",
+  designing: "Designing with academic theories, thinking methods, and prompt techniques…",
+  promptError: "Prompt generation failed. Please try again.",
+  footerNote:
+    "Every input generates fresh suggestions and prompts. Saved items live on this device.",
+  savedTitle: "Saved",
+  savedDesc: "Terms and prompts saved on this device.",
+  back: "Back",
+  clearAll: "Clear all",
+  clearConfirm: "Delete all saved items?",
+  tabAll: "All",
+  tabTerm: "Terms",
+  tabPrompt: "Prompts",
+  emptyList: "Nothing saved yet. Use the ★ button on the home page to add items.",
+  themeLabel: "Theme",
+  copy: "Copy",
+  copied: "Copied",
+  copyName: "Copy term name",
+  copyPrompt: "Copy prompt",
+  copyPromptDone: "Copied",
+  delete: "Delete",
+  selectedWork: "Selected task",
+  thinkingProcess: "Designed thinking process",
+  components: "Selected components",
+  finalPrompt: "Final prompt",
+  improve: "Improve prompt",
+  improveError: "Improvement failed. Please try again.",
+  changes: "What changed",
+  saved: "Saved",
+  save: "Save",
+  continuationsHeading: "Prompt continuations (3 variants)",
+  regen3: "Regenerate 3 variants",
+  gen3: "Generate 3 continuations",
+  contError: "Failed to generate continuations. Please try again.",
+  contShortError: "Continuation failed.",
+  caseN: (n: number) => `Variant ${n}`,
+  childHeading: (n: number) => `Variant ${n} continuations (3)`,
+  copyContOnly: "Copy continuation",
+  copyFull: "Copy full text",
+  regenChild: "Regenerate this variant's continuations",
+  genChild: "Generate 3 continuations for this variant",
+  saveThis: "Save this variant",
+  unsave: "Unsave",
+  langLabel: "Language",
+  metaTitle: "Prompt Atelier — Turn a word into a purpose & prompt.",
+  metaDesc:
+    "An atelier that turns any word or theme into high-quality writing prompts, weaving academic theory, thinking frameworks, and prompt engineering.",
+};
+
+const dict: Record<Lang, Dict> = { ja: jaRaw as unknown as Dict, en: enRaw };
 
 export function useLang(): [Lang, (l: Lang) => void] {
   const [lang, setLang] = useState<Lang>("ja");
