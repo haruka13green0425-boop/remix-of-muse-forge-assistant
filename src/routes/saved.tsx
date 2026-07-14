@@ -1,15 +1,20 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Copy, Check, Star, Trash2 } from "lucide-react";
 import { loadSaved, writeSaved, type SavedItem } from "@/lib/saved";
-import { AUTH_TOKEN_KEY } from "@/lib/gate.constants";
+import { useT } from "@/lib/i18n";
+import { AdSlot } from "@/components/AdSlot";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/saved")({
   head: () => ({
     meta: [
-      { title: "保存済み — Prompt Atelier" },
-      { name: "description", content: "保存した専門用語とプロンプトを一覧表示します。" },
+      { title: "Saved — Prompt Atelier" },
+      {
+        name: "description",
+        content: "Your saved terms and prompts / 保存した専門用語とプロンプトの一覧。",
+      },
+      { name: "robots", content: "noindex" },
     ],
   }),
   component: SavedPage,
@@ -37,19 +42,14 @@ function useCopy() {
 }
 
 function SavedPage() {
-  const router = useRouter();
+  const [t] = useT();
   const [items, setItems] = useState<SavedItem[]>([]);
   const [tab, setTab] = useState<"all" | "term" | "prompt">("all");
   const { copiedId, copy } = useCopy();
 
   useEffect(() => {
-    const token = localStorage.getItem(AUTH_TOKEN_KEY);
-    if (!token) {
-      router.navigate({ to: "/unlock", replace: true });
-      return;
-    }
     setItems(loadSaved());
-  }, [router]);
+  }, []);
 
   const filtered = useMemo(() => {
     if (tab === "all") return items;
@@ -63,7 +63,7 @@ function SavedPage() {
   }
 
   function clearAll() {
-    if (!confirm("保存済み項目をすべて削除しますか？")) return;
+    if (!confirm(t.clearConfirm)) return;
     setItems([]);
     writeSaved([]);
   }
@@ -80,7 +80,7 @@ function SavedPage() {
             className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            戻る
+            {t.back}
           </Link>
           {items.length > 0 && (
             <button
@@ -89,46 +89,44 @@ function SavedPage() {
               className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-destructive"
             >
               <Trash2 className="h-3.5 w-3.5" />
-              すべて削除
+              {t.clearAll}
             </button>
           )}
         </header>
 
         <h1 className="mt-8 flex items-center gap-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           <Star className="h-6 w-6 fill-primary text-primary" />
-          保存済み
+          {t.savedTitle}
         </h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          この端末に保存された専門用語とプロンプトです。
-        </p>
+        <p className="mt-3 text-sm text-muted-foreground">{t.savedDesc}</p>
 
         <div className="mt-8 flex gap-2 border-b border-border">
           {(
             [
-              { key: "all", label: `すべて (${items.length})` },
-              { key: "term", label: `専門用語 (${termCount})` },
-              { key: "prompt", label: `プロンプト (${promptCount})` },
+              { key: "all", label: `${t.tabAll} (${items.length})` },
+              { key: "term", label: `${t.tabTerm} (${termCount})` },
+              { key: "prompt", label: `${t.tabPrompt} (${promptCount})` },
             ] as const
-          ).map((t) => (
+          ).map((tb) => (
             <button
-              key={t.key}
+              key={tb.key}
               type="button"
-              onClick={() => setTab(t.key)}
+              onClick={() => setTab(tb.key)}
               className={cn(
                 "px-3 py-2 text-xs transition-colors",
-                tab === t.key
+                tab === tb.key
                   ? "border-b-2 border-primary text-foreground"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {t.label}
+              {tb.label}
             </button>
           ))}
         </div>
 
         {filtered.length === 0 ? (
           <div className="mt-16 rounded-lg border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">
-            まだ保存された項目はありません。ホームで★ボタンから追加できます。
+            {t.emptyList}
           </div>
         ) : (
           <div className="mt-6 space-y-4">
@@ -147,14 +145,14 @@ function SavedPage() {
                         </span>
                       </div>
                       <div className="mt-0.5 text-[10px] tracking-widest text-primary">
-                        テーマ：{item.theme}
+                        {t.themeLabel}: {item.theme}
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                       <button
                         type="button"
                         onClick={() => copy(item.id, item.name)}
-                        aria-label="用語名をコピー"
+                        aria-label={t.copyName}
                         className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                       >
                         {copiedId === item.id ? (
@@ -166,7 +164,7 @@ function SavedPage() {
                       <button
                         type="button"
                         onClick={() => remove(item.id)}
-                        aria-label="削除"
+                        aria-label={t.delete}
                         className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -184,7 +182,7 @@ function SavedPage() {
                     <div>
                       <h3 className="text-sm font-semibold text-foreground">{item.usageTitle}</h3>
                       <div className="mt-0.5 text-[10px] tracking-widest text-primary">
-                        テーマ：{item.theme}
+                        {t.themeLabel}: {item.theme}
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
@@ -196,19 +194,19 @@ function SavedPage() {
                         {copiedId === item.id ? (
                           <>
                             <Check className="h-3.5 w-3.5 text-primary" />
-                            コピー済み
+                            {t.copyPromptDone}
                           </>
                         ) : (
                           <>
                             <Copy className="h-3.5 w-3.5" />
-                            プロンプトをコピー
+                            {t.copyPrompt}
                           </>
                         )}
                       </button>
                       <button
                         type="button"
                         onClick={() => remove(item.id)}
-                        aria-label="削除"
+                        aria-label={t.delete}
                         className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -238,6 +236,8 @@ function SavedPage() {
             )}
           </div>
         )}
+
+        <AdSlot />
       </div>
     </div>
   );
