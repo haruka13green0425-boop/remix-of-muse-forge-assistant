@@ -102,6 +102,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
+    scripts: import.meta.env.VITE_ADSENSE_CLIENT
+      ? [
+          {
+            async: true,
+            src: `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${import.meta.env.VITE_ADSENSE_CLIENT}`,
+            crossOrigin: "anonymous",
+          },
+        ]
+      : [
+    ],
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
