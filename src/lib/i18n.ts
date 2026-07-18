@@ -72,10 +72,10 @@ export type Dict = {
 
 const enRaw: Dict = {
   brand: "PROMPT ATELIER",
-  heroL1: "Turn a word",
-  heroL2: "into a purpose & prompt.",
+  heroL1: "Expand your thinking frame from a word,",
+  heroL2: "into a new perspective.",
   tagline:
-    "Enter a word or theme. The AI explores related concepts and suggests diverse uses. Save with ★; generated prompts weave together academic theories, thinking frameworks, and prompt-engineering techniques.",
+    "Enter one or more words of interest, and the AI will generate a wide range of specialized terms and questions related to your input. It helps you discover fascinating concepts and thinking methods you couldn't reach on your own, and get surprising answers from AI through a fresh perspective. You can save with ★. The generated questions for AI are designed by combining academic theories, thinking frameworks, and prompt-engineering techniques.",
   inputLabel: "Input",
   placeholder: "e.g. stars, gemstones, morning light, decision-making, memory…",
   restart: "Start over",
@@ -126,7 +126,7 @@ const enRaw: Dict = {
   saveThis: "Save this variant",
   unsave: "Unsave",
   langLabel: "Language",
-  metaTitle: "Prompt Atelier — Turn a word into a purpose & prompt.",
+  metaTitle: "Prompt Atelier — From words to purpose and prompts.",
   metaDesc:
     "An atelier that turns any word or theme into high-quality writing prompts, weaving academic theory, thinking frameworks, and prompt engineering.",
 };
