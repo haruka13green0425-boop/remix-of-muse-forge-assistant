@@ -271,12 +271,79 @@ ${JSON.stringify(parsed)}
 Return ONLY pure JSON in the same shape.`;
 
     const verifiedRaw = await callAI(verifyPrompt, verifySystem);
-    return extractJson<{
+    let result = extractJson<{
       thinking_process: string;
       components: Array<{ name: string; category: string; reason: string }>;
       prompt: string;
     }>(verifiedRaw);
+
+    // Programmatic guarantee: all three categories (Academic Theory, Thinking Framework,
+    // Prompt Engineering) must be present in components AND each name must appear in the prompt body.
+    const classify = (c: string) => {
+      const s = (c || "").toLowerCase();
+      if (/学術|理論|theory|academic|law|principle|hypothesis/.test(s)) return "theory";
+      if (/思考|フレーム|framework|thinking|mental model|heuristic/.test(s)) return "thinking";
+      if (/prompt|プロンプト|engineering|technique|技法/.test(s)) return "prompt";
+      return "other";
+    };
+    const needs = (r: typeof result) => {
+      const kinds = new Set(r.components.map((c) => classify(c.category)));
+      const missing: string[] = [];
+      if (!kinds.has("theory")) missing.push(lang === "ja" ? "学術理論" : "Academic Theory");
+      if (!kinds.has("thinking")) missing.push(lang === "ja" ? "思考法" : "Thinking Framework");
+      if (!kinds.has("prompt")) missing.push(lang === "ja" ? "プロンプトエンジニアリング技法" : "Prompt Engineering Technique");
+      const notEmbedded = r.components
+        .map((c) => c.name)
+        .filter((n) => n && !r.prompt.includes(n));
+      return { missing, notEmbedded };
+    };
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const { missing, notEmbedded } = needs(result);
+      if (missing.length === 0 && notEmbedded.length === 0) break;
+
+      const fixPrompt =
+        lang === "ja"
+          ? `以下のJSONは要件を満たしていません。**必ず修正**してください。
+
+問題:
+${missing.length ? `- 次のカテゴリが components に存在しない: ${missing.join(", ")}。それぞれ実在する具体名を1つ以上必ず追加し、prompt 本文にその名称を明示的に登場させ手順として機能させる。` : ""}
+${notEmbedded.length ? `- 次の要素名が prompt 本文中に登場していない: ${notEmbedded.join(", ")}。本文に明示的に組み込み、単なる言及ではなく実際の思考ステップとして働くよう書き直す。` : ""}
+
+要件（再掲）:
+- components には必ず「学術理論」「思考法」「プロンプトエンジニアリング技法」の3カテゴリそれぞれから最低1つ以上、合計3〜7個。
+- すべての components.name を prompt 本文中に明示的に登場させ、その手順・観点を実際に組み込む。
+- ${techniqueCorrectnessRule("ja")}
+- prompt 本文はプレーンテキストのみ（Markdown禁止）。
+
+入力JSON:
+${JSON.stringify(result)}
+
+出力は同じ形の純粋なJSONのみ。`
+          : `The following JSON does NOT satisfy the requirements. You MUST fix it.
+
+Problems:
+${missing.length ? `- The following categories are missing from components: ${missing.join(", ")}. Add at least one real, specific item from each missing category and make sure the name appears in the prompt body as an actual operational step.` : ""}
+${notEmbedded.length ? `- These component names do NOT appear in the prompt body: ${notEmbedded.join(", ")}. Rewrite the prompt so each is explicitly named and works as a real reasoning/checking step.` : ""}
+
+Requirements (restated):
+- components MUST include at least one item from each of the three categories: "Academic Theory", "Thinking Framework", and "Prompt Engineering Technique" (3–7 total).
+- Every components.name MUST appear verbatim inside the prompt body and function as a real step.
+- ${techniqueCorrectnessRule("en")}
+- prompt body must be plain text only (no Markdown).
+
+Input JSON:
+${JSON.stringify(result)}
+
+Return ONLY pure JSON in the same shape.`;
+
+      const fixedRaw = await callAI(fixPrompt, verifySystem);
+      result = extractJson<typeof result>(fixedRaw);
+    }
+
+    return result;
   });
+
 
 // --- Improve prompt ---
 
