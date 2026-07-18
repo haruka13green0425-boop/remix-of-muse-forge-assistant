@@ -33,12 +33,27 @@ export const exploreTheme = createServerFn({ method: "POST" })
 1) "terms": 関連する専門用語・概念を必ず10件。各項目 { "name": 用語(正式名称), "field": 学問分野, "desc": 60〜90字の簡潔な解説 }。
    厳守事項:
    - **実在し、学術書・辞典・論文・公的資料で確認できる定着済みの用語のみ**を出力。造語、想像上の用語、記憶が曖昧な名称、それらしい響きだけで作った擬似用語は絶対禁止。
-   - **テーマとの関連性は必須**。無関係な分野の用語を件数合わせで混ぜない。同じ分野からの下位区分・派生概念・対立概念など複数採用可。
-   - **意外性を最重視**。誰もがまず思いつく代表的用語だけで埋めず、10件のうち半数以上を「知らなかったが確かに関係がある」と感じさせる水準にする。
+   - **テーマとの関連性は必須**。ただし直球の類語で埋めない。テーマの周辺・隣接・裏側・比喩・応用先など「意外な角度」から拾う。
+   - **分野の分散を最重要視**。10件を最低6つ以上の異なる学問分野にまたがらせる（例: 心理学・言語学・数学・生物学・経済学・工学・哲学・社会学・情報科学・美学・音楽学・建築・料理科学・気象学・法学・神経科学・民俗学・スポーツ科学 など、テーマから自然に伸びる範囲で幅広く）。同一分野の連発は3件までに制限。
+   - **意外性の水準**: 10件のうち **少なくとも6件は「教科書の目次には載らないが確かに関係がある」中〜上級の用語**。誰もが真っ先に想起する超定番語は多くて3件まで。
+   - **時代と地域も分散**: 現代の学術用語だけでなく、古典・非欧米圏由来の概念も歓迎（実在するものに限る）。
 2) "usages": このテーマの「使い道」の題材案を必ず10件。各項目 { "title": 20字以内の題材名, "desc": 60〜100字の具体的内容 }。
    厳守方針:
    - 1で挙げた用語のいくつかに具体的に紐づく題材にする（用語名を desc の中で自然に言及可）。
-   - 目的の幅を大きくばらけさせる。日常実用、読み物・エンタメ、学習、創作、仕事・ビジネス、思考拡張、意思決定分析、対話ロールプレイ、変換翻案、内省、文化歴史、健康ライフスタイル などから **最低6レイヤー以上をまたぐ**。
+   - **目的の幅を極端に広げる**。次の12レイヤーから **最低8レイヤーをまたぐ** こと。同一レイヤーは最大2件まで。
+     ① 日常実用（家事・買い物・人付き合い等の具体判断）
+     ② 読み物・エンタメ（短編小説、寓話、架空対談、書評風）
+     ③ 学習・理解（初学者向け解説、比喩による説明）
+     ④ 創作（詩、歌詞、シナリオ骨子、ネーミング）
+     ⑤ 仕事・ビジネス（企画書、提案文、議事整理、交渉ロールプレイ）
+     ⑥ 思考拡張（前提を疑う問い、反対仮説の生成、視点転換）
+     ⑦ 意思決定支援（トレードオフ整理、リスク列挙、優先順位付け）
+     ⑧ 対話・ロールプレイ（歴史人物との対話、専門家AIとの壁打ち）
+     ⑨ 変換・翻案（別ジャンル化、比喩変換、子ども向け化）
+     ⑩ 内省・セルフコーチング（問い出し、振り返り整理）
+     ⑪ 文化・歴史・地理（起源探求、地域比較）
+     ⑫ 健康・身体・ライフスタイル（習慣設計、感覚言語化）
+   - **意外性を歓迎**: 「そのテーマでそんな使い方があるのか」と感じる斜めの題材を最低3件混ぜる。
    - 各題材は必ずAIに文章（テキスト）を出力させる題材にする。
 
 出力は次の形の純粋なJSONのみ:
@@ -47,12 +62,27 @@ export const exploreTheme = createServerFn({ method: "POST" })
 1) "terms": exactly 10 related specialist terms/concepts. Each item { "name": formal name, "field": academic field, "desc": 1-2 sentence explanation (~60-140 chars) }.
    Rules:
    - Use ONLY terms that actually exist and can be verified in academic books, dictionaries, peer-reviewed papers, or official sources. NEVER invent coinages, fuzzy-remembered names, plausible-sounding pseudo-terms, or arbitrary compounds.
-   - Terms must be genuinely related to the theme. Don't pad with unrelated fields just for count. Multiple picks from the same field (subtopics, derivatives, opposing concepts) are welcome.
-   - Prioritize **surprise**. At least half of the 10 should feel "I didn't know this but it really is related" rather than the most obvious textbook terms.
+   - Terms must be genuinely related to the theme, but do NOT just list obvious synonyms. Pick from adjacent, underlying, metaphorical, or applied angles.
+   - **Field diversity is the top priority.** The 10 terms must span at least 6 different academic fields (e.g. psychology, linguistics, mathematics, biology, economics, engineering, philosophy, sociology, information science, aesthetics, musicology, architecture, culinary science, meteorology, law, neuroscience, folklore studies, sports science — whatever the theme naturally reaches). Cap any single field at 3 items.
+   - **Surprise floor**: at least 6 of the 10 must be mid-to-advanced terms that "wouldn't be in the table of contents of a beginner textbook, but truly connect". Cap ultra-obvious canonical terms at 3.
+   - **Time / region diversity**: welcome classical and non-Western concepts too (only if genuinely real).
 2) "usages": exactly 10 concrete "things you can do with this theme". Each item { "title": <= 40 chars, "desc": one specific paragraph (~80-160 chars) }.
    Rules:
    - Ground several usages in specific terms from (1); it's fine to name a term in the desc.
-   - Spread the purpose broadly: everyday practical advice, reading/entertainment, learning, creative writing, work/business, thought expansion, decision analysis, dialogue/roleplay, translation/transformation, introspection, culture/history, health/lifestyle. **Span at least 6 different layers.**
+   - **Push the range of purposes to the extreme.** Span **at least 8** of these 12 layers, with at most 2 items per layer:
+     (1) Everyday practical (chores, shopping, social micro-decisions)
+     (2) Reading / entertainment (short fiction, fable, imagined dialogue, mock review)
+     (3) Learning (beginner explanation, metaphor-based teaching)
+     (4) Creative (poem, lyrics, scenario skeleton, naming)
+     (5) Work / business (proposal, briefing, meeting synthesis, negotiation roleplay)
+     (6) Thought expansion (question the premise, generate counter-hypotheses, reframe)
+     (7) Decision support (tradeoff maps, risk enumeration, prioritization)
+     (8) Dialogue / roleplay (converse with a historical figure, expert-AI sparring)
+     (9) Transformation (recast into another genre, metaphor swap, kid-friendly rewrite)
+     (10) Introspection / self-coaching (question drafts, reflection scaffolds)
+     (11) Culture / history / geography (origin exploration, regional comparison)
+     (12) Health / body / lifestyle (habit design, articulating bodily sensations)
+   - **Welcome surprise**: at least 3 usages must feel like "I would never have guessed you could use this theme for that".
    - Every usage must be something that asks an AI to output TEXT (no images/audio/code).
 
 Return ONLY pure JSON:
