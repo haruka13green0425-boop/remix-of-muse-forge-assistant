@@ -73,19 +73,22 @@ function LangToggle({
 }) {
   return (
     <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-[10px] font-medium tracking-wider">
-      {(["ja", "en"] as const).map((l) => (
+      {([
+        { key: "ja", label: "日本語" },
+        { key: "en", label: "English" },
+      ] as const).map((l) => (
         <button
-          key={l}
+          key={l.key}
           type="button"
-          onClick={() => setLang(l)}
+          onClick={() => setLang(l.key)}
           className={cn(
             "rounded-full px-2.5 py-1 transition-colors",
-            lang === l
+            lang === l.key
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          {l.toUpperCase()}
+          {l.label}
         </button>
       ))}
     </div>
