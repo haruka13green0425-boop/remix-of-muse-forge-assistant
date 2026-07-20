@@ -42,6 +42,10 @@ const jaRaw = {
   finalPrompt: "完成プロンプト",
   improve: "プロンプトを改善",
   improveError: "改善に失敗しました。もう一度お試しください。",
+  improveInstructionLabel: "改善指示（任意）",
+  improveInstructionPlaceholder: "例：もっと具体例を増やす／読みやすくする／専門用語を減らす／論理構成を強化する",
+  improveApply: "この指示で改善",
+  improveDefault: "指示なしで改善",
   changes: "改善点",
   saved: "保存済み",
   save: "保存",
@@ -62,6 +66,8 @@ const jaRaw = {
   metaTitle: "Prompt Atelier — 言葉を、目的とプロンプトへ。",
   metaDesc:
     "単語やテーマから、学術理論・思考法・プロンプトエンジニアリングを掛け合わせた高品質な文章生成プロンプトをつくるアトリエ。",
+  privacy: "プライバシーポリシー",
+  terms: "利用規約",
 };
 
 export type Dict = {
@@ -109,6 +115,10 @@ const enRaw: Dict = {
   finalPrompt: "Final prompt",
   improve: "Improve prompt",
   improveError: "Improvement failed. Please try again.",
+  improveInstructionLabel: "Improvement instruction (optional)",
+  improveInstructionPlaceholder: "e.g. add more concrete examples / make it easier to read / reduce jargon / strengthen logical structure",
+  improveApply: "Improve with this instruction",
+  improveDefault: "Improve without instruction",
   changes: "What changed",
   saved: "Saved",
   save: "Save",
@@ -129,6 +139,8 @@ const enRaw: Dict = {
   metaTitle: "Prompt Atelier — From words to purpose and prompts.",
   metaDesc:
     "An atelier that turns any word or theme into high-quality writing prompts, weaving academic theory, thinking frameworks, and prompt engineering.",
+  privacy: "Privacy Policy",
+  terms: "Terms of Service",
 };
 
 const dict: Record<Lang, Dict> = { ja: jaRaw as Dict, en: enRaw };

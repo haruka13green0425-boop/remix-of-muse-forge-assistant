@@ -425,7 +425,11 @@ function Home() {
         <AdSlot />
 
         <footer className="mt-10 border-t border-border pt-6 text-xs text-muted-foreground">
-          {t.footerNote}
+          <p>{t.footerNote}</p>
+          <div className="mt-3 flex flex-wrap gap-4">
+            <Link to="/privacy" className="hover:text-foreground">{t.privacy}</Link>
+            <Link to="/terms" className="hover:text-foreground">{t.terms}</Link>
+          </div>
         </footer>
       </div>
     </div>
@@ -455,6 +459,7 @@ function PromptView({
   const [refining, setRefining] = useState(false);
   const [refineError, setRefineError] = useState<string | null>(null);
   const [lastChanges, setLastChanges] = useState<string | null>(null);
+  const [improveInstruction, setImproveInstruction] = useState("");
 
   const [rootBranch, setRootBranch] = useState<ContinuationBranch | null>(null);
 
@@ -466,6 +471,7 @@ function PromptView({
     setRefining(true);
     setRefineError(null);
     try {
+      const instr = improveInstruction.trim();
       const res = await improve({
         data: {
           theme,
@@ -473,6 +479,7 @@ function PromptView({
           usageDesc: usage.desc,
           currentPrompt: data.prompt,
           lang,
+          ...(instr ? { instruction: instr } : {}),
         },
       });
       setLastChanges(res.changes);
@@ -519,19 +526,6 @@ function PromptView({
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={onImprove}
-              disabled={refining}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
-            >
-              {refining ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Wand2 className="h-3.5 w-3.5" />
-              )}
-              {dict.improve}
-            </button>
-            <button
-              type="button"
               onClick={() =>
                 theme &&
                 usage &&
@@ -552,6 +546,34 @@ function PromptView({
               {isFav ? dict.saved : dict.save}
             </button>
             <CopyButton text={data.prompt} label={dict.copyPrompt} />
+          </div>
+        </div>
+        <div className="mt-4 rounded-lg border border-border bg-card/60 p-3">
+          <label className="text-[10px] tracking-widest text-muted-foreground">
+            {dict.improveInstructionLabel}
+          </label>
+          <textarea
+            value={improveInstruction}
+            onChange={(e) => setImproveInstruction(e.target.value)}
+            placeholder={dict.improveInstructionPlaceholder}
+            rows={2}
+            disabled={refining}
+            className="mt-1.5 w-full resize-y rounded-md border border-border bg-background px-3 py-2 text-xs leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/70 focus:border-primary/50"
+          />
+          <div className="mt-2 flex justify-end">
+            <button
+              type="button"
+              onClick={onImprove}
+              disabled={refining}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              {refining ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Wand2 className="h-3.5 w-3.5" />
+              )}
+              {improveInstruction.trim() ? dict.improveApply : dict.improveDefault}
+            </button>
           </div>
         </div>
         {refineError && <p className="mt-3 text-xs text-destructive">{refineError}</p>}
