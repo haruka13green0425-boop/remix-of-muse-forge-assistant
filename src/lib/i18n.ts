@@ -66,6 +66,8 @@ const jaRaw = {
   metaTitle: "Prompt Atelier — 言葉を、目的とプロンプトへ。",
   metaDesc:
     "単語やテーマから、学術理論・思考法・プロンプトエンジニアリングを掛け合わせた高品質な文章生成プロンプトをつくるアトリエ。",
+  privacy: "プライバシーポリシー",
+  terms: "利用規約",
 };
 
 export type Dict = {
