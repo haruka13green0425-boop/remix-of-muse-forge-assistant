@@ -455,6 +455,7 @@ function PromptView({
   const [refining, setRefining] = useState(false);
   const [refineError, setRefineError] = useState<string | null>(null);
   const [lastChanges, setLastChanges] = useState<string | null>(null);
+  const [improveInstruction, setImproveInstruction] = useState("");
 
   const [rootBranch, setRootBranch] = useState<ContinuationBranch | null>(null);
 
@@ -466,6 +467,7 @@ function PromptView({
     setRefining(true);
     setRefineError(null);
     try {
+      const instr = improveInstruction.trim();
       const res = await improve({
         data: {
           theme,
@@ -473,6 +475,7 @@ function PromptView({
           usageDesc: usage.desc,
           currentPrompt: data.prompt,
           lang,
+          ...(instr ? { instruction: instr } : {}),
         },
       });
       setLastChanges(res.changes);
