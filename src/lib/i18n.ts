@@ -139,6 +139,8 @@ const enRaw: Dict = {
   metaTitle: "Prompt Atelier — From words to purpose and prompts.",
   metaDesc:
     "An atelier that turns any word or theme into high-quality writing prompts, weaving academic theory, thinking frameworks, and prompt engineering.",
+  privacy: "Privacy Policy",
+  terms: "Terms of Service",
 };
 
 const dict: Record<Lang, Dict> = { ja: jaRaw as Dict, en: enRaw };
