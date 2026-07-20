@@ -425,7 +425,11 @@ function Home() {
         <AdSlot />
 
         <footer className="mt-10 border-t border-border pt-6 text-xs text-muted-foreground">
-          {t.footerNote}
+          <p>{t.footerNote}</p>
+          <div className="mt-3 flex flex-wrap gap-4">
+            <Link to="/privacy" className="hover:text-foreground">{t.privacy}</Link>
+            <Link to="/terms" className="hover:text-foreground">{t.terms}</Link>
+          </div>
         </footer>
       </div>
     </div>
