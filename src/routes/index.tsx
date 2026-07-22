@@ -38,10 +38,10 @@ export const Route = createFileRoute("/")({
         content:
           "単語やテーマから、学術理論・思考法・プロンプトエンジニアリング技法を掛け合わせた高品質な文章生成プロンプトをつくるアトリエ。/ An atelier that turns any word or theme into high-quality writing prompts weaving academic theory, thinking frameworks, and prompt engineering.",
       },
-      { property: "og:title", content: "Prompt Atelier" },
+      { property: "og:title", content: "Prompt Atelier — 言葉を、目的とプロンプトへ。" },
       {
         property: "og:description",
-        content: "Turn any word into a purpose and a high-quality writing prompt.",
+        content: "単語やテーマから、学術理論・思考法・プロンプトエンジニアリング技法を掛け合わせた高品質な文章生成プロンプトをつくるアトリエ。/ An atelier that turns any word or theme into high-quality writing prompts weaving academic theory, thinking frameworks, and prompt engineering.",
       },
       { property: "og:type", content: "website" },
     ],
