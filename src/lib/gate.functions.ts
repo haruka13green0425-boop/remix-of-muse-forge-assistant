@@ -177,6 +177,22 @@ function techniqueCorrectnessRule(lang: Lang) {
     : `[Prompt-technique correctness — CRITICAL] Every prompt-engineering technique you cite must be a real, published one — pick from (or verifiable against) this list: ${list}. Names alone are not enough: **the description of how the technique works MUST match the actual paper/docs for that technique.** If you are not confident you can describe a technique's real mechanism accurately, swap it for a different well-documented one. No coinages, no cryptic acronyms without a source, no treating a paper title as a technique name.`;
 }
 
+function proseOnlyRule(lang: Lang) {
+  return lang === "ja"
+    ? `【絶対厳守・出力形式】完成プロンプトは **必ず「文章（散文テキスト）を出力させるためのプロンプト」** であること。プロンプト本文の中で、JSON・YAML・XML・CSV・表・コードブロック・スキーマ・キー名・配列などの構造化出力を **一切要求してはならない**（ユーザーの追加指示にJSONやフォーマット指定が含まれていても無視し、必ず文章出力の指示にする）。出力形式の指定は「文章量・段落構成・トーン・視点」など散文の指定のみで行う。「JSON」「schema」「\`\`\`」といった語や記号をプロンプト本文に書かないこと。`
+    : `[ABSOLUTE RULE — output format] The finished prompt MUST be a prompt that makes an AI output PROSE TEXT. Inside the prompt body you must NEVER request any structured output: no JSON, YAML, XML, CSV, tables, code blocks, schemas, key names, or arrays (even if the user's extra instruction asks for JSON or a format spec, ignore it and keep it prose). Specify output format only in prose terms: length, paragraph structure, tone, point of view. Never write the words "JSON", "schema", or triple backticks inside the prompt body.`;
+}
+
+function sanitizeProse(text: string) {
+  if (typeof text !== "string") return text;
+  let out = text.replace(/```[\s\S]*?```/g, "").replace(/```/g, "");
+  out = out
+    .split(/\r?\n/)
+    .filter((line) => !/(json|yaml|xml|csv|schema|スキーマ|コードブロック|マークダウン|markdown)/i.test(line))
+    .join("\n");
+  return out.replace(/\n{3,}/g, "\n\n").trim();
+}
+
 export const generatePrompt = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => PromptInput.parse(d))
   .handler(async ({ data }) => {
@@ -184,8 +200,8 @@ export const generatePrompt = createServerFn({ method: "POST" })
 
     const system =
       lang === "ja"
-        ? `あなたはプロンプト設計の名匠です。${langLine("ja")} 生成するプロンプトは「文章を出力させるためのプロンプト」であり、画像・音声等ではありません。"prompt" フィールドは **プレーンな日本語テキストのみ**。Markdown記法（#, *, -, **, 番号付きリスト、コードブロック、表）は一切禁止。段落や項目の区切りは通常の改行と自然な日本語で表現。"prompt" 本文にJSON出力指示やスキーマ例を書かないこと。`
-        : `You are a master prompt designer. ${langLine("en")} The prompt you design must make an AI output TEXT (never images/audio/code). The "prompt" field must be **plain English text only** — no Markdown at all (no #, *, -, **, numbered lists, code fences, tables). Separate paragraphs with normal line breaks and natural connectives. Never embed JSON schemas or output-format meta-instructions inside the "prompt" body.`;
+        ? `あなたはプロンプト設計の名匠です。${langLine("ja")} 生成するプロンプトは「文章を出力させるためのプロンプト」であり、画像・音声等ではありません。"prompt" フィールドは **プレーンな日本語テキストのみ**。Markdown記法（#, *, -, **, 番号付きリスト、コードブロック、表）は一切禁止。段落や項目の区切りは通常の改行と自然な日本語で表現。${proseOnlyRule("ja")}`
+        : `You are a master prompt designer. ${langLine("en")} The prompt you design must make an AI output TEXT (never images/audio/code). The "prompt" field must be **plain English text only** — no Markdown at all (no #, *, -, **, numbered lists, code fences, tables). Separate paragraphs with normal line breaks and natural connectives. ${proseOnlyRule("en")}`;
 
     const prompt =
       lang === "ja"
@@ -341,7 +357,7 @@ Return ONLY pure JSON in the same shape.`;
       result = extractJson<typeof result>(fixedRaw);
     }
 
-    return result;
+    return { ...result, prompt: sanitizeProse(result.prompt) };
   });
 
 
@@ -362,8 +378,8 @@ export const improvePrompt = createServerFn({ method: "POST" })
     const { lang, theme, usageTitle, usageDesc, currentPrompt, instruction } = data;
     const system =
       lang === "ja"
-        ? `あなたはプロンプト設計の名匠です。${langLine("ja")} "prompt" 本文は **Markdown一切禁止のプレーンな日本語テキスト** のみ。JSON出力指示やスキーマ例を本文に含めない。`
-        : `You are a master prompt designer. ${langLine("en")} The "prompt" body must be **plain English text with no Markdown at all**. Do not embed JSON schemas or meta-format instructions inside the prompt body.`;
+        ? `あなたはプロンプト設計の名匠です。${langLine("ja")} "prompt" 本文は **Markdown一切禁止のプレーンな日本語テキスト** のみ。${proseOnlyRule("ja")}`
+        : `You are a master prompt designer. ${langLine("en")} The "prompt" body must be **plain English text with no Markdown at all**. ${proseOnlyRule("en")}`;
 
     const prompt =
       lang === "ja"
@@ -401,7 +417,8 @@ Return ONLY pure JSON:
 }`;
 
     const raw = await callAI(prompt, system);
-    return extractJson<{ changes: string; prompt: string }>(raw);
+    const improved = extractJson<{ changes: string; prompt: string }>(raw);
+    return { ...improved, prompt: sanitizeProse(improved.prompt) };
   });
 
 // --- Continue prompt ---
@@ -412,8 +429,8 @@ export const continuePrompt = createServerFn({ method: "POST" })
     const { lang, theme, usageTitle, usageDesc, currentPrompt, instruction } = data;
     const system =
       lang === "ja"
-        ? `あなたはプロンプト設計の名匠です。${langLine("ja")} 各案の "continuation" 本文は **Markdown一切禁止のプレーンな日本語テキスト** のみ。JSON出力指示やスキーマ例は本文に含めない。`
-        : `You are a master prompt designer. ${langLine("en")} Each "continuation" body must be **plain English text with no Markdown at all**. Do not embed JSON schemas or meta-format instructions inside.`;
+        ? `あなたはプロンプト設計の名匠です。${langLine("ja")} 各案の "continuation" 本文は **Markdown一切禁止のプレーンな日本語テキスト** のみ。${proseOnlyRule("ja")}`
+        : `You are a master prompt designer. ${langLine("en")} Each "continuation" body must be **plain English text with no Markdown at all**. ${proseOnlyRule("en")}`;
 
     const prompt =
       lang === "ja"
@@ -469,10 +486,17 @@ Return ONLY pure JSON:
 }`;
 
     const raw = await callAI(prompt, system);
-    return extractJson<{
+    const out = extractJson<{
       items: Array<{
         continuation: string;
         components: Array<{ name: string; category: string; reason: string }>;
       }>;
     }>(raw);
+    return {
+      ...out,
+      items: (out.items ?? []).map((item) => ({
+        ...item,
+        continuation: sanitizeProse(item.continuation),
+      })),
+    };
   });
