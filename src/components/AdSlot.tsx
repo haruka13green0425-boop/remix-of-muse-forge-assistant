@@ -21,18 +21,7 @@ export function AdSlot({ className = "" }: { className?: string }) {
     }
   }, []);
 
-  if (!CLIENT || !SLOT) {
-    return (
-      <div
-        className={
-          "mt-10 flex items-center justify-center rounded-lg border border-dashed border-border bg-card/60 px-4 py-6 text-[10px] tracking-widest text-muted-foreground " +
-          className
-        }
-      >
-        AD SLOT · set VITE_ADSENSE_CLIENT and VITE_ADSENSE_SLOT
-      </div>
-    );
-  }
+  if (!CLIENT || !SLOT) return null;
 
   return (
     <div className={"mt-10 " + className}>
