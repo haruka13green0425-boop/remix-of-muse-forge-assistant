@@ -417,7 +417,8 @@ Return ONLY pure JSON:
 }`;
 
     const raw = await callAI(prompt, system);
-    return extractJson<{ changes: string; prompt: string }>(raw);
+    const improved = extractJson<{ changes: string; prompt: string }>(raw);
+    return { ...improved, prompt: sanitizeProse(improved.prompt) };
   });
 
 // --- Continue prompt ---
