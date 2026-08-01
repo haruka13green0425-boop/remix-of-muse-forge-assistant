@@ -486,10 +486,17 @@ Return ONLY pure JSON:
 }`;
 
     const raw = await callAI(prompt, system);
-    return extractJson<{
+    const out = extractJson<{
       items: Array<{
         continuation: string;
         components: Array<{ name: string; category: string; reason: string }>;
       }>;
     }>(raw);
+    return {
+      ...out,
+      items: (out.items ?? []).map((item) => ({
+        ...item,
+        continuation: sanitizeProse(item.continuation),
+      })),
+    };
   });
