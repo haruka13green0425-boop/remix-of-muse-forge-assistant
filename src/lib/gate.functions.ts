@@ -378,8 +378,8 @@ export const improvePrompt = createServerFn({ method: "POST" })
     const { lang, theme, usageTitle, usageDesc, currentPrompt, instruction } = data;
     const system =
       lang === "ja"
-        ? `あなたはプロンプト設計の名匠です。${langLine("ja")} "prompt" 本文は **Markdown一切禁止のプレーンな日本語テキスト** のみ。JSON出力指示やスキーマ例を本文に含めない。`
-        : `You are a master prompt designer. ${langLine("en")} The "prompt" body must be **plain English text with no Markdown at all**. Do not embed JSON schemas or meta-format instructions inside the prompt body.`;
+        ? `あなたはプロンプト設計の名匠です。${langLine("ja")} "prompt" 本文は **Markdown一切禁止のプレーンな日本語テキスト** のみ。${proseOnlyRule("ja")}`
+        : `You are a master prompt designer. ${langLine("en")} The "prompt" body must be **plain English text with no Markdown at all**. ${proseOnlyRule("en")}`;
 
     const prompt =
       lang === "ja"
