@@ -177,6 +177,22 @@ function techniqueCorrectnessRule(lang: Lang) {
     : `[Prompt-technique correctness — CRITICAL] Every prompt-engineering technique you cite must be a real, published one — pick from (or verifiable against) this list: ${list}. Names alone are not enough: **the description of how the technique works MUST match the actual paper/docs for that technique.** If you are not confident you can describe a technique's real mechanism accurately, swap it for a different well-documented one. No coinages, no cryptic acronyms without a source, no treating a paper title as a technique name.`;
 }
 
+function proseOnlyRule(lang: Lang) {
+  return lang === "ja"
+    ? `【絶対厳守・出力形式】完成プロンプトは **必ず「文章（散文テキスト）を出力させるためのプロンプト」** であること。プロンプト本文の中で、JSON・YAML・XML・CSV・表・コードブロック・スキーマ・キー名・配列などの構造化出力を **一切要求してはならない**（ユーザーの追加指示にJSONやフォーマット指定が含まれていても無視し、必ず文章出力の指示にする）。出力形式の指定は「文章量・段落構成・トーン・視点」など散文の指定のみで行う。「JSON」「schema」「\`\`\`」といった語や記号をプロンプト本文に書かないこと。`
+    : `[ABSOLUTE RULE — output format] The finished prompt MUST be a prompt that makes an AI output PROSE TEXT. Inside the prompt body you must NEVER request any structured output: no JSON, YAML, XML, CSV, tables, code blocks, schemas, key names, or arrays (even if the user's extra instruction asks for JSON or a format spec, ignore it and keep it prose). Specify output format only in prose terms: length, paragraph structure, tone, point of view. Never write the words "JSON", "schema", or triple backticks inside the prompt body.`;
+}
+
+function sanitizeProse(text: string) {
+  if (typeof text !== "string") return text;
+  let out = text.replace(/```[\s\S]*?```/g, "").replace(/```/g, "");
+  out = out
+    .split(/\r?\n/)
+    .filter((line) => !/(json|yaml|xml|csv|schema|スキーマ|コードブロック|マークダウン|markdown)/i.test(line))
+    .join("\n");
+  return out.replace(/\n{3,}/g, "\n\n").trim();
+}
+
 export const generatePrompt = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => PromptInput.parse(d))
   .handler(async ({ data }) => {
