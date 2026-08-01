@@ -357,7 +357,7 @@ Return ONLY pure JSON in the same shape.`;
       result = extractJson<typeof result>(fixedRaw);
     }
 
-    return result;
+    return { ...result, prompt: sanitizeProse(result.prompt) };
   });
 
 
