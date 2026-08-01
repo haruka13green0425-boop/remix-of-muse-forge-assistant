@@ -200,8 +200,8 @@ export const generatePrompt = createServerFn({ method: "POST" })
 
     const system =
       lang === "ja"
-        ? `あなたはプロンプト設計の名匠です。${langLine("ja")} 生成するプロンプトは「文章を出力させるためのプロンプト」であり、画像・音声等ではありません。"prompt" フィールドは **プレーンな日本語テキストのみ**。Markdown記法（#, *, -, **, 番号付きリスト、コードブロック、表）は一切禁止。段落や項目の区切りは通常の改行と自然な日本語で表現。"prompt" 本文にJSON出力指示やスキーマ例を書かないこと。`
-        : `You are a master prompt designer. ${langLine("en")} The prompt you design must make an AI output TEXT (never images/audio/code). The "prompt" field must be **plain English text only** — no Markdown at all (no #, *, -, **, numbered lists, code fences, tables). Separate paragraphs with normal line breaks and natural connectives. Never embed JSON schemas or output-format meta-instructions inside the "prompt" body.`;
+        ? `あなたはプロンプト設計の名匠です。${langLine("ja")} 生成するプロンプトは「文章を出力させるためのプロンプト」であり、画像・音声等ではありません。"prompt" フィールドは **プレーンな日本語テキストのみ**。Markdown記法（#, *, -, **, 番号付きリスト、コードブロック、表）は一切禁止。段落や項目の区切りは通常の改行と自然な日本語で表現。${proseOnlyRule("ja")}`
+        : `You are a master prompt designer. ${langLine("en")} The prompt you design must make an AI output TEXT (never images/audio/code). The "prompt" field must be **plain English text only** — no Markdown at all (no #, *, -, **, numbered lists, code fences, tables). Separate paragraphs with normal line breaks and natural connectives. ${proseOnlyRule("en")}`;
 
     const prompt =
       lang === "ja"
