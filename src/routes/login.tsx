@@ -54,26 +54,37 @@ function LoginPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password || sending) return;
+    if (sending) return;
+    if (!email.trim() || !password) {
+      setError("メールアドレスとパスワードを入力してください");
+      return;
+    }
     setSending(true);
     setError(null);
     try {
-      const { error: err } = await supabase.auth.signInWithPassword({
+      const { data, error: err } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
+      console.info("[signInWithPassword] result", { user: data?.user?.id ?? null, err });
       if (err) {
-        console.error("[signInWithPassword]", err);
-        setError("メールアドレスまたはパスワードが違います");
+        const status = (err as { status?: number }).status;
+        setError(
+          err.message === "Invalid login credentials"
+            ? `メールアドレスまたはパスワードが違います（${status ?? "400"}: ${err.message}）`
+            : `${status ? status + ": " : ""}${err.message}`,
+        );
         return;
       }
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       console.error("[signInWithPassword] threw", err);
-      setError("メールアドレスまたはパスワードが違います");
+      setError(`通信エラー: ${message}`);
     } finally {
       setSending(false);
     }
   };
+
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-5 py-16">
