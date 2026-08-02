@@ -57,17 +57,29 @@ function LoginPage() {
     if (!email.trim() || sending) return;
     setSending(true);
     setError(null);
-    const { error: err } = await supabase.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: { emailRedirectTo: window.location.origin },
-    });
-    setSending(false);
-    if (err) {
-      setError("メールの送信に失敗しました。時間をおいて再度お試しください。");
-      return;
+    try {
+      const { error: err } = await supabase.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (err) {
+        console.error("[signInWithOtp]", err);
+        setError(
+          `送信に失敗しました: ${err.message}${err.status ? ` (status ${err.status})` : ""}`,
+        );
+        return;
+      }
+      setSent(true);
+    } catch (err) {
+      console.error("[signInWithOtp] threw", err);
+      setError(
+        `送信に失敗しました: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    } finally {
+      setSending(false);
     }
-    setSent(true);
   };
+
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-5 py-16">
