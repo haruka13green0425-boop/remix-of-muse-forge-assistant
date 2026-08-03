@@ -9,9 +9,8 @@ const schema = z.object({
 /**
  * Makes sure an account exists for anyone registered in the backend.
  *
- * - If the email has a row in `members` (and is not explicitly deactivated),
- *   the auth user is created on first login with the password typed in the form
- *   and is auto-confirmed.
+ * - If the email does not have an auth user yet, the auth user is created on
+ *   first login with the password typed in the form and is auto-confirmed.
  * - If the auth user already exists but the email was never confirmed,
  *   it gets confirmed so password login works.
  * - Existing passwords are never overwritten.
@@ -55,11 +54,6 @@ export const ensureAccount = createServerFn({ method: "POST" })
         }
       }
       return { ok: true as const, created: false as const };
-    }
-
-    if (!member) {
-      // Not registered in the backend at all.
-      return { ok: false as const, reason: "unknown" as const };
     }
 
     const { error } = await supabaseAdmin.auth.admin.createUser({

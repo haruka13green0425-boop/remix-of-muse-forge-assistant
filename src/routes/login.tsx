@@ -77,8 +77,6 @@ function LoginPage() {
         if (!account.ok) {
           if (account.reason === "inactive") {
             setError("このメールアドレスの利用は停止されています");
-          } else if (account.reason === "unknown") {
-            setError("このメールアドレスはバックエンドに登録されていません");
           } else {
             setError(`登録確認エラー: ${account.message}`);
           }
