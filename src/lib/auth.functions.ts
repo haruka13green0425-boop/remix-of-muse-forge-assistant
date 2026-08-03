@@ -3,7 +3,7 @@ import { z } from "zod";
 
 const schema = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string().min(1),
 });
 
 /**
@@ -22,22 +22,37 @@ export const ensureAccount = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const email = data.email.trim().toLowerCase();
 
-    const { data: member } = await supabaseAdmin
+    const { data: member, error: memberError } = await supabaseAdmin
       .from("members")
       .select("email, is_active")
       .ilike("email", email)
       .maybeSingle();
 
+    if (memberError) {
+      return { ok: false as const, reason: "error" as const, message: memberError.message };
+    }
+
     if (member && member.is_active === false) {
       return { ok: false as const, reason: "inactive" as const };
     }
 
-    const { data: list } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    const { data: list, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    if (listError) {
+      return { ok: false as const, reason: "error" as const, message: listError.message };
+    }
     const existing = list?.users.find((u) => (u.email ?? "").toLowerCase() === email);
 
     if (existing) {
       if (!existing.email_confirmed_at) {
-        await supabaseAdmin.auth.admin.updateUserById(existing.id, { email_confirm: true });
+        const { error: confirmError } = await supabaseAdmin.auth.admin.updateUserById(existing.id, {
+          email_confirm: true,
+        });
+        if (confirmError) {
+          return { ok: false as const, reason: "error" as const, message: confirmError.message };
+        }
       }
       return { ok: true as const, created: false as const };
     }

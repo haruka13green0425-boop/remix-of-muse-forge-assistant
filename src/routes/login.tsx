@@ -73,15 +73,28 @@ function LoginPage() {
       if (err) {
         // Anyone registered in the backend should be able to sign in:
         // create/confirm the account on the server, then retry once.
+        const account = await ensureAccount({ data: { email: normalized, password } });
+        if (!account.ok) {
+          if (account.reason === "inactive") {
+            setError("このメールアドレスの利用は停止されています");
+          } else if (account.reason === "unknown") {
+            setError("このメールアドレスはバックエンドに登録されていません");
+          } else {
+            setError(`登録確認エラー: ${account.message}`);
+          }
+          return;
+        }
+
         try {
-          await ensureAccount({ data: { email: normalized, password } });
           const retry = await supabase.auth.signInWithPassword({
             email: normalized,
             password,
           });
           err = retry.error;
-        } catch {
-          /* fall through to the original error */
+        } catch (retryError) {
+          const message = retryError instanceof Error ? retryError.message : String(retryError);
+          setError(`ログイン処理エラー: ${message}`);
+          return;
         }
       }
 
@@ -89,7 +102,7 @@ function LoginPage() {
         const status = (err as { status?: number }).status;
         setError(
           err.message === "Invalid login credentials"
-            ? `メールアドレスまたはパスワードが違います（${status ?? "400"}: ${err.message}）`
+            ? "バックエンドに登録したパスワードと一致しません。登録時のパスワードを入力してください"
             : `${status ? status + ": " : ""}${err.message}`,
         );
         return;
