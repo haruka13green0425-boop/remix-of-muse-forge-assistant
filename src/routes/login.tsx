@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +34,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const ensureAccountFn = useServerFn(ensureAccount);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [sending, setSending] = useState(false);
@@ -73,7 +75,7 @@ function LoginPage() {
       if (err) {
         // Anyone registered in the backend should be able to sign in:
         // create/confirm the account on the server, then retry once.
-        const account = await ensureAccount({ data: { email: normalized, password } });
+        const account = await ensureAccountFn({ data: { email: normalized, password } });
         if (!account.ok) {
           if (account.reason === "inactive") {
             setError("このメールアドレスの利用は停止されています");
