@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { ensureAccount } from "@/lib/auth.functions";
+
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -61,12 +63,28 @@ function LoginPage() {
     }
     setSending(true);
     setError(null);
+    const normalized = email.trim().toLowerCase();
     try {
-      const { data, error: err } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
+      let { error: err } = await supabase.auth.signInWithPassword({
+        email: normalized,
         password,
       });
-      console.info("[signInWithPassword] result", { user: data?.user?.id ?? null, err });
+
+      if (err) {
+        // Anyone registered in the backend should be able to sign in:
+        // create/confirm the account on the server, then retry once.
+        try {
+          await ensureAccount({ data: { email: normalized, password } });
+          const retry = await supabase.auth.signInWithPassword({
+            email: normalized,
+            password,
+          });
+          err = retry.error;
+        } catch {
+          /* fall through to the original error */
+        }
+      }
+
       if (err) {
         const status = (err as { status?: number }).status;
         setError(
@@ -84,6 +102,7 @@ function LoginPage() {
       setSending(false);
     }
   };
+
 
 
   return (
