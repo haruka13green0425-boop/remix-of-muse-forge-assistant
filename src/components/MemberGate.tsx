@@ -24,12 +24,14 @@ export function MemberGate({ children }: { children: React.ReactNode }) {
       setState({ status: "anonymous" });
       return;
     }
+    // Anyone registered in the backend can sign in.
+    // Access is blocked only when an explicit membership row says is_active = false.
     const { data: member } = await supabase
       .from("members")
       .select("is_active")
-      .eq("is_active", true)
       .maybeSingle();
-    setState(member ? { status: "allowed", email } : { status: "denied" });
+    setState(member && member.is_active === false ? { status: "denied" } : { status: "allowed", email });
+
   }, []);
 
   useEffect(() => {
