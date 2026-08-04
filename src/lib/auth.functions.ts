@@ -44,6 +44,13 @@ export const ensureAccount = createServerFn({ method: "POST" })
     }
     const existing = list?.users.find((u) => (u.email ?? "").toLowerCase() === email);
 
+    // Keeps membership rows linked to the auth account so RLS can match on user id
+    // instead of the (spoofable) email claim.
+    const linkMember = async (userId: string) => {
+      if (!member) return;
+      await supabaseAdmin.from("members").update({ user_id: userId }).ilike("email", email);
+    };
+
     if (existing) {
       if (!existing.email_confirmed_at) {
         const { error: confirmError } = await supabaseAdmin.auth.admin.updateUserById(existing.id, {
@@ -53,15 +60,17 @@ export const ensureAccount = createServerFn({ method: "POST" })
           return { ok: false as const, reason: "error" as const, message: confirmError.message };
         }
       }
+      await linkMember(existing.id);
       return { ok: true as const, created: false as const };
     }
 
-    const { error } = await supabaseAdmin.auth.admin.createUser({
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: data.password,
       email_confirm: true,
     });
     if (error) return { ok: false as const, reason: "error" as const, message: error.message };
+    if (created?.user) await linkMember(created.user.id);
 
     return { ok: true as const, created: true as const };
   });
