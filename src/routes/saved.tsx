@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Copy, Check, Star, Trash2 } from "lucide-react";
-import { loadSaved, writeSaved, type SavedItem } from "@/lib/saved";
+import { clearSaved, loadSaved, removeSaved, type SavedItem } from "@/lib/saved";
 import { useT } from "@/lib/i18n";
 import { AdSlot } from "@/components/AdSlot";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,10 @@ export const Route = createFileRoute("/saved")({
         content: "Your saved terms and prompts / 保存した専門用語とプロンプトの一覧。",
       },
       { name: "robots", content: "noindex" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { property: "og:title", content: "Saved — Prompt Atelier" },
+      { property: "og:description", content: "Your saved terms and prompts / 保存した専門用語とプロンプトの一覧。" },
     ],
   }),
   component: SavedPage,
@@ -48,7 +52,15 @@ function SavedPage() {
   const { copiedId, copy } = useCopy();
 
   useEffect(() => {
-    setItems(loadSaved());
+    let active = true;
+    loadSaved()
+      .then((saved) => {
+        if (active) setItems(saved);
+      })
+      .catch((error) => console.error("[saved_items] load failed", error));
+    return () => {
+      active = false;
+    };
   }, []);
 
   const filtered = useMemo(() => {
@@ -56,16 +68,28 @@ function SavedPage() {
     return items.filter((i) => i.type === tab);
   }, [items, tab]);
 
-  function remove(id: string) {
+  async function remove(id: string) {
+    const previous = items;
     const next = items.filter((i) => i.id !== id);
     setItems(next);
-    writeSaved(next);
+    try {
+      await removeSaved(id);
+    } catch (error) {
+      setItems(previous);
+      console.error("[saved_items] delete failed", error);
+    }
   }
 
-  function clearAll() {
+  async function clearAll() {
     if (!confirm(t.clearConfirm)) return;
+    const previous = items;
     setItems([]);
-    writeSaved([]);
+    try {
+      await clearSaved();
+    } catch (error) {
+      setItems(previous);
+      console.error("[saved_items] clear failed", error);
+    }
   }
 
   const termCount = items.filter((i) => i.type === "term").length;

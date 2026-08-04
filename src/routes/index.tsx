@@ -20,7 +20,8 @@ import {
 } from "@/lib/gate.functions";
 import {
   loadSaved,
-  writeSaved,
+  saveItem,
+  removeSaved,
   termId,
   promptId,
   type SavedItem,
@@ -178,17 +179,28 @@ function Home() {
   const [saved, setSaved] = useState<SavedItem[]>([]);
 
   useEffect(() => {
-    setSaved(loadSaved());
+    let active = true;
+    loadSaved()
+      .then((items) => {
+        if (active) setSaved(items);
+      })
+      .catch((error) => console.error("[saved_items] load failed", error));
+    return () => {
+      active = false;
+    };
   }, []);
 
-  function updateSaved(next: SavedItem[]) {
-    setSaved(next);
-    writeSaved(next);
-  }
-
-  function toggleSaved(item: SavedItem) {
+  async function toggleSaved(item: SavedItem) {
     const exists = saved.some((s) => s.id === item.id);
-    updateSaved(exists ? saved.filter((s) => s.id !== item.id) : [item, ...saved]);
+    const previous = saved;
+    setSaved(exists ? saved.filter((s) => s.id !== item.id) : [item, ...saved]);
+    try {
+      if (exists) await removeSaved(item.id);
+      else await saveItem(item);
+    } catch (error) {
+      setSaved(previous);
+      console.error("[saved_items] update failed", error);
+    }
   }
 
   const savedIds = useMemo(() => new Set(saved.map((s) => s.id)), [saved]);
@@ -452,7 +464,7 @@ function PromptView({
   lang: Lang;
   dict: Dict;
   savedIds: Set<string>;
-  onToggleSaved: (item: SavedItem) => void;
+  onToggleSaved: (item: SavedItem) => void | Promise<void>;
   onUpdate: (next: PromptResult) => void;
 }) {
   const improve = useServerFn(improvePrompt);
@@ -624,7 +636,7 @@ function ContinuationsSection({
   branch: ContinuationBranch | null;
   onBranchChange: (b: ContinuationBranch | null) => void;
   savedIds: Set<string>;
-  onToggleSaved: (item: SavedItem) => void;
+  onToggleSaved: (item: SavedItem) => void | Promise<void>;
 }) {
   const cont = useServerFn(continuePrompt);
   const [loading, setLoading] = useState(false);
@@ -711,7 +723,7 @@ function BranchView({
   branch: ContinuationBranch;
   onChange: (b: ContinuationBranch) => void;
   savedIds: Set<string>;
-  onToggleSaved: (item: SavedItem) => void;
+  onToggleSaved: (item: SavedItem) => void | Promise<void>;
 }) {
   return (
     <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -760,7 +772,7 @@ function ContinuationCard({
   item: ContinuationItem & { child?: ContinuationBranch };
   onChildChange: (b: ContinuationBranch | null) => void;
   savedIds: Set<string>;
-  onToggleSaved: (item: SavedItem) => void;
+  onToggleSaved: (item: SavedItem) => void | Promise<void>;
 }) {
   const fullPromptText = `${basePrompt}\n\n${item.continuation}`;
   const savedId = promptId(theme, `${usage.title} / #${index + 1}`, fullPromptText);
