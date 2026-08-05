@@ -1,67 +1,7 @@
-import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { generateText } from "ai";
 
 const MODEL = "google/gemini-2.5-flash";
-const TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
-type UnlockPayload = {
-  unlocked: true;
-  iat: number;
-  exp: number;
-  nonce: string;
-};
-
-function sessionSecret() {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret) throw new Error("SESSION_SECRET is not set");
-  return secret;
-}
-
-function sign(encodedPayload: string) {
-  return createHmac("sha256", sessionSecret()).update(encodedPayload).digest("base64url");
-}
-
-export function passwordMatches(input: string, expected: string) {
-  const a = createHash("sha256").update(input, "utf8").digest();
-  const b = createHash("sha256").update(expected, "utf8").digest();
-  return timingSafeEqual(a, b);
-}
-
-export function createUnlockToken() {
-  const now = Math.floor(Date.now() / 1000);
-  const payload: UnlockPayload = {
-    unlocked: true,
-    iat: now,
-    exp: now + TOKEN_MAX_AGE_SECONDS,
-    nonce: randomBytes(16).toString("base64url"),
-  };
-  const encodedPayload = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
-  return `${encodedPayload}.${sign(encodedPayload)}`;
-}
-
-export function verifyUnlockToken(token?: string | null) {
-  if (!token) return false;
-  const [encodedPayload, signature] = token.split(".");
-  if (!encodedPayload || !signature) return false;
-
-  const expectedSignature = sign(encodedPayload);
-  const received = Buffer.from(signature);
-  const expected = Buffer.from(expectedSignature);
-  if (received.length !== expected.length || !timingSafeEqual(received, expected)) return false;
-
-  try {
-    const payload = JSON.parse(
-      Buffer.from(encodedPayload, "base64url").toString("utf8"),
-    ) as Partial<UnlockPayload>;
-    return payload.unlocked === true && typeof payload.exp === "number" && payload.exp > Date.now() / 1000;
-  } catch {
-    return false;
-  }
-}
-
-export function requireUnlockToken(token?: string | null) {
-  if (!verifyUnlockToken(token)) throw new Error("ログインが必要です");
-}
 
 export async function callAI(prompt: string, system: string): Promise<string> {
   const key = process.env.LOVABLE_API_KEY;
