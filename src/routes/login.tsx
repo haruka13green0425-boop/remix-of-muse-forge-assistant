@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 
 export const Route = createFileRoute("/login")({
@@ -35,7 +36,9 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [sending, setSending] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -62,6 +65,7 @@ function LoginPage() {
     }
     setSending(true);
     setError(null);
+    setNotice(null);
     const normalized = email.trim().toLowerCase();
     try {
       const { error: err } = await supabase.auth.signInWithPassword({
@@ -71,7 +75,7 @@ function LoginPage() {
 
       if (err) {
         console.error("[signInWithPassword] failed", err);
-        setError("メールアドレスまたはパスワードが違います");
+        setError(`メールアドレスまたはパスワードが違います（${err.message}）`);
         return;
       }
     } catch (err) {
@@ -79,6 +83,33 @@ function LoginPage() {
       setError("メールアドレスまたはパスワードが違います");
     } finally {
       setSending(false);
+    }
+  };
+
+  const resetPassword = async () => {
+    const normalized = email.trim().toLowerCase();
+    if (!normalized) {
+      setError("先に登録済みのメールアドレスを入力してください");
+      return;
+    }
+    setResetting(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalized, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (resetError) {
+        console.error("[resetPasswordForEmail] failed", resetError);
+        setError(`再設定メールを送信できませんでした（${resetError.message}）`);
+        return;
+      }
+      setNotice("パスワード再設定メールを送信しました。メール内のリンクを開いてください。");
+    } catch (resetError) {
+      console.error("[resetPasswordForEmail] threw", resetError);
+      setError("再設定メールを送信できませんでした。しばらくしてからお試しください。");
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -112,14 +143,24 @@ function LoginPage() {
             placeholder="パスワード"
             className="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
           />
-          <button
+          <Button
             type="submit"
             disabled={sending}
-            className="w-full rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+            className="h-11 w-full"
           >
             {sending ? "ログイン中…" : "ログイン"}
-          </button>
+          </Button>
+          <Button
+            type="button"
+            variant="link"
+            disabled={resetting}
+            onClick={resetPassword}
+            className="h-auto w-full whitespace-normal py-1"
+          >
+            {resetting ? "送信中…" : "ログインできない場合はパスワードを再設定"}
+          </Button>
           {error && <p className="text-sm text-destructive">{error}</p>}
+          {notice && <p className="text-sm text-foreground">{notice}</p>}
         </form>
       </div>
     </main>
