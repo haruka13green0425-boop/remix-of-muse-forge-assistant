@@ -143,12 +143,12 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isPublicAuthRoute = pathname === "/login" || pathname === "/reset-password";
+  const isLogin = pathname === "/login";
 
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      {isPublicAuthRoute ? <Outlet /> : <MemberGate><Outlet /></MemberGate>}
+      {isLogin ? <Outlet /> : <MemberGate><Outlet /></MemberGate>}
     </QueryClientProvider>
   );
 }
