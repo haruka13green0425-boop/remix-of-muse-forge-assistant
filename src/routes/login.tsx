@@ -86,6 +86,53 @@ function LoginPage() {
     }
   };
 
+  const doRegister = useServerFn(registerMember);
+  const [suEmail, setSuEmail] = useState("");
+  const [suPassword, setSuPassword] = useState("");
+  const [suBusy, setSuBusy] = useState(false);
+  const [suError, setSuError] = useState<string | null>(null);
+  const [suDone, setSuDone] = useState(false);
+
+  const onRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (suBusy) return;
+    setSuError(null);
+    setSuDone(false);
+    if (!suEmail.trim() || suPassword.length < 8) {
+      setSuError("メールアドレスと8文字以上のパスワードを入力してください");
+      return;
+    }
+    setSuBusy(true);
+    try {
+      const res = await doRegister({
+        data: { email: suEmail.trim().toLowerCase(), password: suPassword },
+      });
+      if (!res.ok) {
+        setSuError(
+          res.code === "NOT_ALLOWED"
+            ? "このメールアドレスは登録対象ではありません。ご購入時のメールアドレスをご確認ください。"
+            : res.code === "INACTIVE"
+              ? "このメールアドレスは現在ご利用いただけません。"
+              : res.code === "ALREADY_REGISTERED"
+                ? "このメールアドレスは既に登録済みです。上のログインからお進みください。"
+                : "登録に失敗しました。もう一度お試しください。",
+        );
+        return;
+      }
+      setSuDone(true);
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: suEmail.trim().toLowerCase(),
+        password: suPassword,
+      });
+      if (signInError) {
+        setSuError("登録は完了しました。上のログインからお進みください。");
+      }
+    } catch {
+      setSuError("登録に失敗しました。もう一度お試しください。");
+    } finally {
+      setSuBusy(false);
+    }
+  };
 
 
   return (
