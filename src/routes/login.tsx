@@ -1,8 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { memberLogin } from "@/lib/login.functions";
+
 
 
 export const Route = createFileRoute("/login")({
@@ -33,12 +36,11 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const login = useServerFn(memberLogin);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [sending, setSending] = useState(false);
-  const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -65,53 +67,31 @@ function LoginPage() {
     }
     setSending(true);
     setError(null);
-    setNotice(null);
     const normalized = email.trim().toLowerCase();
     try {
-      const { error: err } = await supabase.auth.signInWithPassword({
-        email: normalized,
-        password,
-      });
-
-      if (err) {
-        console.error("[signInWithPassword] failed", err);
-        setError(`メールアドレスまたはパスワードが違います（${err.message}）`);
+      const result = await login({ data: { email: normalized, password } });
+      if (!result.ok) {
+        setError("メールアドレスまたはパスワードが違います");
         return;
       }
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        type: "email",
+        token_hash: result.tokenHash,
+      });
+      if (verifyError) {
+        setError("メールアドレスまたはパスワードが違います");
+        return;
+      }
+      navigate({ to: "/", replace: true });
     } catch (err) {
-      console.error("[signInWithPassword] threw", err);
+      console.error("[memberLogin] failed", err);
       setError("メールアドレスまたはパスワードが違います");
     } finally {
       setSending(false);
     }
   };
 
-  const resetPassword = async () => {
-    const normalized = email.trim().toLowerCase();
-    if (!normalized) {
-      setError("先に登録済みのメールアドレスを入力してください");
-      return;
-    }
-    setResetting(true);
-    setError(null);
-    setNotice(null);
-    try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalized, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (resetError) {
-        console.error("[resetPasswordForEmail] failed", resetError);
-        setError(`再設定メールを送信できませんでした（${resetError.message}）`);
-        return;
-      }
-      setNotice("パスワード再設定メールを送信しました。メール内のリンクを開いてください。");
-    } catch (resetError) {
-      console.error("[resetPasswordForEmail] threw", resetError);
-      setError("再設定メールを送信できませんでした。しばらくしてからお試しください。");
-    } finally {
-      setResetting(false);
-    }
-  };
+
 
 
 
@@ -150,17 +130,8 @@ function LoginPage() {
           >
             {sending ? "ログイン中…" : "ログイン"}
           </Button>
-          <Button
-            type="button"
-            variant="link"
-            disabled={resetting}
-            onClick={resetPassword}
-            className="h-auto w-full whitespace-normal py-1"
-          >
-            {resetting ? "送信中…" : "ログインできない場合はパスワードを再設定"}
-          </Button>
           {error && <p className="text-sm text-destructive">{error}</p>}
-          {notice && <p className="text-sm text-foreground">{notice}</p>}
+
         </form>
       </div>
     </main>
