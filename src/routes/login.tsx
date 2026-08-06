@@ -130,17 +130,8 @@ function LoginPage() {
           >
             {sending ? "ログイン中…" : "ログイン"}
           </Button>
-          <Button
-            type="button"
-            variant="link"
-            disabled={resetting}
-            onClick={resetPassword}
-            className="h-auto w-full whitespace-normal py-1"
-          >
-            {resetting ? "送信中…" : "ログインできない場合はパスワードを再設定"}
-          </Button>
           {error && <p className="text-sm text-destructive">{error}</p>}
-          {notice && <p className="text-sm text-foreground">{notice}</p>}
+
         </form>
       </div>
     </main>
