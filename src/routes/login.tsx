@@ -172,7 +172,45 @@ function LoginPage() {
           </button>
           {error && <p className="text-sm text-destructive">{error}</p>}
         </form>
+
+        <section className="mt-12 border-t border-border pt-8">
+          <h2 className="text-lg font-semibold text-foreground">はじめて利用する方へ</h2>
+          <p className="mt-3 text-sm text-muted-foreground">
+            ご購入時のメールアドレスと、ご自身で決めたパスワードを登録してください。登録後はそのパスワードでログインできます。
+            ご購入情報にないメールアドレスは登録できません。
+          </p>
+          <form onSubmit={onRegister} className="mt-6 space-y-4">
+            <input
+              type="email"
+              autoComplete="email"
+              value={suEmail}
+              onChange={(e) => setSuEmail(e.target.value)}
+              placeholder="ご購入時のメールアドレス"
+              className="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+            />
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={suPassword}
+              onChange={(e) => setSuPassword(e.target.value)}
+              placeholder="新しいパスワード（8文字以上）"
+              className="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+            />
+            <button
+              type="submit"
+              disabled={suBusy}
+              className="w-full rounded-md border border-input bg-secondary px-4 py-3 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80 disabled:opacity-60"
+            >
+              {suBusy ? "登録中…" : "パスワードを登録する"}
+            </button>
+            {suError && <p className="text-sm text-destructive">{suError}</p>}
+            {suDone && !suError && (
+              <p className="text-sm text-muted-foreground">登録が完了しました。</p>
+            )}
+          </form>
+        </section>
       </div>
+
     </main>
   );
 }
