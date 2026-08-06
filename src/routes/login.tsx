@@ -1,7 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { registerMember } from "@/lib/signup.functions";
+
+
 
 
 export const Route = createFileRoute("/login")({
@@ -82,6 +86,53 @@ function LoginPage() {
     }
   };
 
+  const doRegister = useServerFn(registerMember);
+  const [suEmail, setSuEmail] = useState("");
+  const [suPassword, setSuPassword] = useState("");
+  const [suBusy, setSuBusy] = useState(false);
+  const [suError, setSuError] = useState<string | null>(null);
+  const [suDone, setSuDone] = useState(false);
+
+  const onRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (suBusy) return;
+    setSuError(null);
+    setSuDone(false);
+    if (!suEmail.trim() || suPassword.length < 8) {
+      setSuError("メールアドレスと8文字以上のパスワードを入力してください");
+      return;
+    }
+    setSuBusy(true);
+    try {
+      const res = await doRegister({
+        data: { email: suEmail.trim().toLowerCase(), password: suPassword },
+      });
+      if (!res.ok) {
+        setSuError(
+          res.code === "NOT_ALLOWED"
+            ? "このメールアドレスは登録対象ではありません。ご購入時のメールアドレスをご確認ください。"
+            : res.code === "INACTIVE"
+              ? "このメールアドレスは現在ご利用いただけません。"
+              : res.code === "ALREADY_REGISTERED"
+                ? "このメールアドレスは既に登録済みです。上のログインからお進みください。"
+                : "登録に失敗しました。もう一度お試しください。",
+        );
+        return;
+      }
+      setSuDone(true);
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: suEmail.trim().toLowerCase(),
+        password: suPassword,
+      });
+      if (signInError) {
+        setSuError("登録は完了しました。上のログインからお進みください。");
+      }
+    } catch {
+      setSuError("登録に失敗しました。もう一度お試しください。");
+    } finally {
+      setSuBusy(false);
+    }
+  };
 
 
   return (
@@ -121,7 +172,45 @@ function LoginPage() {
           </button>
           {error && <p className="text-sm text-destructive">{error}</p>}
         </form>
+
+        <section className="mt-12 border-t border-border pt-8">
+          <h2 className="text-lg font-semibold text-foreground">はじめて利用する方へ</h2>
+          <p className="mt-3 text-sm text-muted-foreground">
+            ご購入時のメールアドレスと、ご自身で決めたパスワードを登録してください。登録後はそのパスワードでログインできます。
+            ご購入情報にないメールアドレスは登録できません。
+          </p>
+          <form onSubmit={onRegister} className="mt-6 space-y-4">
+            <input
+              type="email"
+              autoComplete="email"
+              value={suEmail}
+              onChange={(e) => setSuEmail(e.target.value)}
+              placeholder="ご購入時のメールアドレス"
+              className="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+            />
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={suPassword}
+              onChange={(e) => setSuPassword(e.target.value)}
+              placeholder="新しいパスワード（8文字以上）"
+              className="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+            />
+            <button
+              type="submit"
+              disabled={suBusy}
+              className="w-full rounded-md border border-input bg-secondary px-4 py-3 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80 disabled:opacity-60"
+            >
+              {suBusy ? "登録中…" : "パスワードを登録する"}
+            </button>
+            {suError && <p className="text-sm text-destructive">{suError}</p>}
+            {suDone && !suError && (
+              <p className="text-sm text-muted-foreground">登録が完了しました。</p>
+            )}
+          </form>
+        </section>
       </div>
+
     </main>
   );
 }
