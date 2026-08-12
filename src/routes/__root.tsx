@@ -19,7 +19,9 @@ function NotFoundComponent() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">
+          Page not found
+        </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           The page you're looking for doesn't exist or has been moved.
         </p>
@@ -89,17 +91,37 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:title", content: "Prompt Atelier — 言葉を、目的とプロンプトへ。" },
       { name: "twitter:title", content: "Prompt Atelier — 言葉を、目的とプロンプトへ。" },
-      { property: "og:description", content: "単語やテーマから、学術理論・思考法・プロンプトエンジニアリング技法を掛け合わせた高品質な文章生成プロンプトをつくるアトリエ。/ An atelier that turns any word or theme into high-quality writing prompts weaving academic theory, thinking frameworks, and prompt engineering." },
-      { name: "twitter:description", content: "単語やテーマから、学術理論・思考法・プロンプトエンジニアリング技法を掛け合わせた高品質な文章生成プロンプトをつくるアトリエ。/ An atelier that turns any word or theme into high-quality writing prompts weaving academic theory, thinking frameworks, and prompt engineering." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9135a93e-9122-4e2a-ae2e-f61e97046584/id-preview-4707e7a3--ddb6ac5b-1a77-4af9-afd7-a510d85a2ce6.lovable.app-1784556340400.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9135a93e-9122-4e2a-ae2e-f61e97046584/id-preview-4707e7a3--ddb6ac5b-1a77-4af9-afd7-a510d85a2ce6.lovable.app-1784556340400.png" },
+      {
+        property: "og:description",
+        content:
+          "単語やテーマから、学術理論・思考法・プロンプトエンジニアリング技法を掛け合わせた高品質な文章生成プロンプトをつくるアトリエ。/ An atelier that turns any word or theme into high-quality writing prompts weaving academic theory, thinking frameworks, and prompt engineering.",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "単語やテーマから、学術理論・思考法・プロンプトエンジニアリング技法を掛け合わせた高品質な文章生成プロンプトをつくるアトリエ。/ An atelier that turns any word or theme into high-quality writing prompts weaving academic theory, thinking frameworks, and prompt engineering.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9135a93e-9122-4e2a-ae2e-f61e97046584/id-preview-4707e7a3--ddb6ac5b-1a77-4af9-afd7-a510d85a2ce6.lovable.app-1784556340400.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9135a93e-9122-4e2a-ae2e-f61e97046584/id-preview-4707e7a3--ddb6ac5b-1a77-4af9-afd7-a510d85a2ce6.lovable.app-1784556340400.png",
+      },
     ],
     links: [
       {
         rel: "preconnect",
         href: "https://fonts.googleapis.com",
       },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "preconnect",
+        href: "https://fonts.gstatic.com",
+        crossOrigin: "anonymous",
+      },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;700&display=swap",
@@ -143,7 +165,7 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isPublicAuthRoute = pathname === "/login" || pathname === "/reset-password";
+  const isPublicAuthRoute = pathname === "/login";
 
   return (
     <QueryClientProvider client={queryClient}>
