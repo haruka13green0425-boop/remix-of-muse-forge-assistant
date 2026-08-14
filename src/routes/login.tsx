@@ -13,19 +13,19 @@ export const Route = createFileRoute("/login")({
       {
         name: "description",
         content:
-          "ご登録のメールアドレスに6桁のログインコードを送信します。Prompt Atelier のご購入者様専用ログインページです。",
+          "ご登録のメールアドレスにログイン用のリンクを送信します。Prompt Atelier のご購入者様専用ログインページです。",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { property: "og:title", content: "ログイン — Prompt Atelier 会員ページ" },
       {
         property: "og:description",
-        content: "ご登録のメールアドレスに6桁のログインコードを送信します。",
+        content: "ご登録のメールアドレスにログイン用のリンクを送信します。",
       },
       { name: "twitter:title", content: "ログイン — Prompt Atelier 会員ページ" },
       {
         name: "twitter:description",
-        content: "ご登録のメールアドレスに6桁のログインコードを送信します。",
+        content: "ご登録のメールアドレスにログイン用のリンクを送信します。",
       },
     ],
   }),
@@ -35,10 +35,8 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
-  const [token, setToken] = useState("");
-  const [step, setStep] = useState<"email" | "otp">("email");
   const [sending, setSending] = useState(false);
-  const [verifying, setVerifying] = useState(false);
+  const [sent, setSent] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,8 +68,8 @@ function LoginPage() {
     return () => window.clearInterval(timer);
   }, [resendCooldown]);
 
-  const sendCode = async () => {
-    if (sending || (step === "otp" && resendCooldown > 0)) return;
+  const sendLoginLink = async () => {
+    if (sending || resendCooldown > 0) return;
 
     const normalized = email.trim().toLowerCase();
     if (!normalized) {
@@ -81,6 +79,7 @@ function LoginPage() {
 
     setSending(true);
     setError(null);
+    setSent(false);
 
     try {
       const { error: otpError } = await supabase.auth.signInWithOtp({
@@ -96,56 +95,14 @@ function LoginPage() {
       }
 
       setEmail(normalized);
-      setToken("");
-      setStep("otp");
+      setSent(true);
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
     } catch (err) {
-      console.error("[email OTP] failed", err);
+      console.error("[login link] failed", err);
       setError("登録されたメールアドレスではありません。サブスク登録をご確認ください。");
     } finally {
       setSending(false);
     }
-  };
-
-  const verifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (verifying) return;
-
-    const normalized = email.trim().toLowerCase();
-    if (!/^\d{6}$/.test(token)) {
-      setError("6桁のコードを入力してください");
-      return;
-    }
-
-    setVerifying(true);
-    setError(null);
-
-    try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email: normalized,
-        token,
-        type: "email",
-      });
-
-      if (verifyError) {
-        setError("コードが正しくないか、有効期限が切れています。もう一度お試しください。");
-        return;
-      }
-
-      navigate({ to: "/", replace: true });
-    } catch (err) {
-      console.error("[email OTP verification] failed", err);
-      setError("コードが正しくないか、有効期限が切れています。もう一度お試しください。");
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  const backToEmail = () => {
-    setStep("email");
-    setToken("");
-    setError(null);
-    setResendCooldown(0);
   };
 
   return (
@@ -154,87 +111,60 @@ function LoginPage() {
         <p className="text-xs tracking-[0.3em] text-muted-foreground">PROMPT ATELIER</p>
         <h1 className="mt-4 text-2xl font-semibold text-foreground">ログイン</h1>
 
-        {step === "email" ? (
-          <>
-            <p className="mt-3 text-sm text-muted-foreground">
-              ご登録のメールアドレスに6桁のログインコードを送信します
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+          ご登録のメールアドレスにログイン用のリンクを送信します。
+          <br />
+          メール内のボタンからログインしてください。
+        </p>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void sendLoginLink();
+          }}
+          className="mt-8 space-y-4"
+        >
+          <input
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setSent(false);
+              setError(null);
+            }}
+            placeholder="you@example.com"
+            className="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+          />
+          <Button
+            type="submit"
+            disabled={sending || resendCooldown > 0}
+            className="h-11 w-full"
+          >
+            {sending
+              ? "送信中…"
+              : resendCooldown > 0
+                ? `再送信まで ${resendCooldown}秒`
+                : sent
+                  ? "ログインリンクを再送"
+                  : "ログインリンクを送信"}
+          </Button>
+
+          <p className="text-xs leading-5 text-muted-foreground">
+            メールが届かない場合は、迷惑メールフォルダもご確認ください。
+            <br />
+            数分経っても届かない場合は、ご登録のメールアドレスにお間違いがないかご確認の上、再度お試しください。
+          </p>
+
+          {sent && (
+            <p className="text-sm leading-6 text-foreground">
+              ログインリンクをメールにお送りしました。メール内のボタンからログインしてください。
             </p>
+          )}
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                void sendCode();
-              }}
-              className="mt-8 space-y-4"
-            >
-              <input
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
-              />
-              <Button type="submit" disabled={sending} className="h-11 w-full">
-                {sending ? "送信中…" : "コードを送信"}
-              </Button>
-              {error && <p className="text-sm text-destructive">{error}</p>}
-            </form>
-          </>
-        ) : (
-          <>
-            <p className="mt-3 text-sm text-muted-foreground">
-              メールに届いた6桁のコードを入力してください
-            </p>
-            <p className="mt-2 truncate text-sm text-foreground">{email}</p>
-
-            <form onSubmit={verifyCode} className="mt-8 space-y-4">
-              <input
-                type="text"
-                required
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                pattern="[0-9]{6}"
-                maxLength={6}
-                value={token}
-                onChange={(e) => setToken(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="6桁のコード"
-                aria-label="6桁のコード"
-                className="w-full rounded-md border border-input bg-background px-4 py-3 text-center text-lg tracking-[0.4em] text-foreground outline-none focus:ring-2 focus:ring-ring"
-              />
-              <Button
-                type="submit"
-                disabled={verifying || token.length !== 6}
-                className="h-11 w-full"
-              >
-                {verifying ? "ログイン中…" : "ログイン"}
-              </Button>
-
-              <div className="flex items-center justify-between gap-4 text-xs">
-                <button
-                  type="button"
-                  onClick={() => void sendCode()}
-                  disabled={sending || resendCooldown > 0}
-                  className="text-muted-foreground underline underline-offset-4 disabled:no-underline disabled:opacity-50"
-                >
-                  {resendCooldown > 0
-                    ? `${resendCooldown}秒後に再送できます`
-                    : "コードを再送"}
-                </button>
-                <button
-                  type="button"
-                  onClick={backToEmail}
-                  className="text-muted-foreground underline underline-offset-4"
-                >
-                  メールアドレスを変更
-                </button>
-              </div>
-
-              {error && <p className="text-sm text-destructive">{error}</p>}
-            </form>
-          </>
-        )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
+        </form>
       </div>
     </main>
   );
