@@ -2,6 +2,16 @@ import { generateText } from "ai";
 
 const MODEL = "google/gemini-2.5-flash";
 
+const TECHNIQUE_DISTINCTIVENESS_RULE = `
+【プロンプト技法の用途の明確化・最重要】
+プロンプトエンジニアリング技法を採用するときは、技法名を付けるだけでなく、その技法固有の目的・操作・適用場面が実際のプロンプト本文に反映されていること。
+複数の技法について「順番に考える」「問題を分解する」「答えを見直す」「例を示す」「別の視点から考える」など、他の技法にもそのまま当てはまる一般的な指示だけを書くのは禁止。
+各技法について、他の技法では代用できない、または少なくとも明確に区別できる固有の手順・構造・判断基準を特定してから本文へ組み込むこと。
+技法の説明を一文だけ取り出したときに、別の技法の説明とほぼ同じ意味になる場合は、その技法の選定または説明をやり直すこと。
+「この技法を用いよ」という名称だけの指示、技法名に一般的な思考指示を付けただけのもの、技法の実体を説明せず名称だけで役割を済ませるものは禁止。
+技法を使う理由も、そのテーマ・題材においてその技法固有の働きが必要だからだと説明できるものだけを採用すること。
+技法同士の違いが曖昧になる場合は、無理に技法数を増やさず、より用途が明確で正確に説明できる技法だけを採用すること。
+`;
 
 export async function callAI(prompt: string, system: string): Promise<string> {
   const key = process.env.LOVABLE_API_KEY;
@@ -10,7 +20,7 @@ export async function callAI(prompt: string, system: string): Promise<string> {
   const gateway = createLovableGateway(key);
   const { text } = await generateText({
     model: gateway(MODEL),
-    system,
+    system: `${system}\n\n${TECHNIQUE_DISTINCTIVENESS_RULE}`,
     prompt,
     temperature: 0.9,
   });
