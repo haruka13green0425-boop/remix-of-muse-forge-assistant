@@ -1,0 +1,66 @@
+name: Patch continuation prompt
+on:
+  push:
+    branches:
+      - fix/continuation-3-options
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - name: Patch prompt rules
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('src/lib/gate.functions.ts')
+          text = path.read_text()
+
+          ja = '''このプロンプトの **続き（追記部分）を必ず3案** 生成してください:
+- 3案のうち **最低1案は、既存プロンプトの訂正・補正案** にすること。単なる続きを書くのではなく、既存プロンプトの弱点・抜け・偏り・曖昧さなど、実際に改善余地がある箇所を特定して補正する。
+- 訂正・補正案の観点は、毎回同じものを固定せず、**既存プロンプトの内容に実際に関係する観点を選ぶ**。候補には、認知的降伏（cognitive closure / premature closure）、フィルターバブル、迎合・同調、確証バイアス、アンカリング効果などを含める。ただし、元プロンプトと無関係な概念を無理に持ち込まない。
+- 訂正・補正案では、採用した観点が「なぜこの既存プロンプトの問題になり得るのか」を踏まえ、具体的に何を追加・変更すべきかを追記する。
+- **「学術理論1＋思考法1＋プロンプトエンジニアリング技法1」の固定を解除する。** 各案には「学術理論」「思考法」「プロンプトエンジニアリング技法」の **各カテゴリを最低1つずつ** 必ず含めること。1カテゴリにつき2つ以上採用してもよい。必要性がある場合は複数カテゴリの要素を組み合わせてよい。
+- 3案すべてで、既存プロンプトに対する方向性を変える。訂正・補正案も含め、既存内容の単純な言い換えや反復は避ける。
+- 各案で使用する学術理論・思考法・プロンプト技法は、内容上必要なものを選ぶ。不要な理論や技法を数合わせで追加しない。
+- 学術理論・思考法は実在するもののみ。造語禁止。
+- プロンプトエンジニアリング技法: ${techniqueCorrectnessRule("ja")} 3案間で技法を重複させない必要はないが、重複する場合は異なる役割で使うこと。
+- 追記本文はプレーンテキストのみ。'''
+
+          en = '''Generate **exactly 3 continuation/appendix proposals** for this prompt:
+- **At least 1 of the 3 proposals must be a correction/refinement of the existing prompt.** Do not merely continue it; identify an actual weakness, omission, bias, ambiguity, or failure mode and add concrete corrective instructions.
+- The correction lens must **vary from generation to generation** rather than being fixed. Candidate lenses include cognitive closure / premature closure, filter bubbles, sycophancy/conformity, confirmation bias, anchoring, and similar biases. Use a lens only when it is genuinely relevant to the existing prompt; never force an unrelated concept into the correction.
+- For the correction/refinement proposal, explain through the prompt itself why the selected lens matters for this existing prompt and what should be added or changed to address it.
+- **Remove the fixed “1 academic theory + 1 thinking framework + 1 prompt-engineering technique” rule.** Every proposal must contain **at least one item from EACH category**: Academic Theory, Thinking Framework, and Prompt Engineering Technique. A proposal may contain 2 or more items from any category when useful. Combine multiple items when they materially improve the prompt; do not add them merely to satisfy a quota.
+- Make all 3 proposals directionally different. Avoid simply repeating or paraphrasing the existing prompt.
+- Choose theories, frameworks, and techniques because they fit the task. Do not add unnecessary components just to fill slots.
+- Academic theories and thinking frameworks must be real and established; no invented concepts.
+- Prompt-engineering techniques: ${techniqueCorrectnessRule("en")} They do not have to be unique across all 3 proposals, but if a technique is repeated, give it a meaningfully different role.
+- The continuation body must be plain text only, with no Markdown.'''
+
+          old_ja = r'''このプロンプトの \*\*続き（追記部分）を必ず3案\*\* 生成してください:.*?- 追記本文はプレーンテキストのみ。'''
+          old_en = r'''Each "continuation" body must be \*\*plain English text with no Markdown at all\*\..*?'''
+
+          text, n_ja = re.subn(old_ja, ja, text, count=1, flags=re.S)
+          text, n_en = re.subn(old_en, en, text, count=1, flags=re.S)
+          if n_ja != 1 or n_en != 1:
+              raise SystemExit(f'patch anchors not found: ja={n_ja}, en={n_en}')
+
+          path.write_text(text)
+          PY
+      - name: Commit and remove patch workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/lib/gate.functions.ts .github/workflows/_patch-continuation.yml
+          git commit -m 'fix: improve three continuation prompt proposals'
+          git rm .github/workflows/_patch-continuation.yml
+          git commit -m 'chore: remove temporary patch workflow'
+          git push origin HEAD:${{ github.ref_name }}
